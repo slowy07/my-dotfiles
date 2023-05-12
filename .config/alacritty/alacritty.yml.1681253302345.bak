@@ -1,0 +1,81 @@
+import:
+  - ./colors-material.yml
+
+window:
+  padding:
+    x: 10
+    y: 10
+
+  decorations: none
+
+  opacity: 1.0
+  dynamic_title: true
+
+  history: 10000
+  multiplier: 3
+
+font:
+  normal:
+    family: Agave Nerd Font
+    #style: Regular
+
+  bold:
+    family: Agave Nerd Font
+    #style: Bold
+
+  italic:
+    family: Agave Nerd Font
+    #style: Italic
+
+  bold_italic:
+    family: Agave Nerd Font
+    #style: Bold Italic
+
+  size: 9
+  offset:
+    x: -2
+    y: -2
+
+# Colors (Decay, decayce variant) z0mbi3 Rice
+selection:
+  save_to_clipboard: false
+
+cursor:
+  style:
+    shape: Block
+    blinking: On
+
+  unfocused_hollow: false
+  blink_interval: 550
+
+live_config_reload: true
+colors:
+  # Default colors
+  primary:
+    # hard contrast: background = '#1d2021'
+    background: '#282828'
+    # soft contrast: background = '#32302f'
+    foreground: '#ebdbb2'
+
+  # Normal colors
+  normal:
+    black: '#282828'
+    red: '#cc241d'
+    green: '#98971a'
+    yellow: '#d79921'
+    blue: '#458588'
+    magenta: '#b16286'
+    cyan: '#689d6a'
+    white: '#a89984'
+
+  # Bright colors
+  bright:
+    black: '#928374'
+    red: '#fb4934'
+    green: '#b8bb26'
+    yellow: '#fabd2f'
+    blue: '#83a598'
+    magenta: '#d3869b'
+    cyan: '#8ec07c'
+    white: '#ebdbb2'
+theme: Gruvbox-Dark
