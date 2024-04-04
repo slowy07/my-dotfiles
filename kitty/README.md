@@ -1,4 +1,4 @@
-![imagekitty](../../.github/kitty.png)
+![imagekitty](../.github/kitty.png)
 
 
 ## installation

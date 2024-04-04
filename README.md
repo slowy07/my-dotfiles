@@ -1,12 +1,16 @@
 ![banner](.github/banner.png)
 
-# my-dotfiles 🖥️
-my personal config files for daily
 
-| apps   | description    |
-|--------------- | --------------- |
-| Text editor   | [Neovim](nvim/) |
-| terminal | [kitty](.config/kitty) |
+## showcase
+
+![banner_desktop1](.github/dekstop_banner1.png)
+![banner_desktop2](.github/desktop_banner2.png)
+
+## color theme
+
+![colorblocks](.github/colorblocks.png)
+
+im using everblush for my current theme cause so calm and aesthetic. you can check on this [repository](https://github.com/Everblush)
 
 ## zsh
 
