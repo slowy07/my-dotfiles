@@ -1,4 +1,4 @@
-![banner](../github/banner.png)
+![banner](.github/banner.png)
 
 # my-dotfiles 🖥️
 my personal config files for daily
