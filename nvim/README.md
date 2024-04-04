@@ -10,10 +10,10 @@ https://nvchad.com/
 
 | plugin                                                                          | screenshoot             |
 | ------------------------------------------------------------------------------- | ----------------------- |
-| [neocord - discord status](https://github.com/IogaMaster/neocord)               | ../.github/neocord.png  |
-| [barbecue - vscode winbar](https://github.com/utilyre/barbecue.nvim)            | ../.github/winbar.png   |
-| [wakatime - record track code](https://wakatime.com/vim)                        | ../.github/wakatime.png |
-| [hlchunk - highlight indent line](https://github.com/shellRaining/hlchunk.nvim) | ../.github/hlchunk.png  |
+| [neocord - discord status](https://github.com/IogaMaster/neocord)               | ![imageneo](../.github/neocord.png)  |
+| [barbecue - vscode winbar](https://github.com/utilyre/barbecue.nvim)            | ![imagebarbecue](../.github/winbar.png)   |
+| [wakatime - record track code](https://wakatime.com/vim)                        | ![imagewakatime](../.github/wakatime.png) |
+| [hlchunk - highlight indent line](https://github.com/shellRaining/hlchunk.nvim) | ![imagehlchunk](../.github/hlchunk.png)  |
 
 for `custom/chadrc.lua` you can use this one (cause i override a color for sync theme)
 
