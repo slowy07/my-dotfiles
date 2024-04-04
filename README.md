@@ -1,3 +1,5 @@
+![banner](./github/banner.png)
+
 # my-dotfiles 🖥️
 my personal config files for daily
 
@@ -5,6 +7,10 @@ my personal config files for daily
 |--------------- | --------------- |
 | Text editor   | [Neovim](nvim/) |
 | terminal | [kitty](.config/kitty) |
+
+## zsh
+
+im using framework ohmyzsh for manage zsh configuration. for installation you can check [this website](https://ohmyz.sh/)
 
 ## Neovim
 
