@@ -8,12 +8,14 @@ https://nvchad.com/
 
 ## additional plugins
 
-- [neocord - discord status](https://github.com/IogaMaster/neocord)
-- [barbecue - vscode winbar](https://github.com/utilyre/barbecue.nvim)
-- [wakatima - record track code](https://wakatime.com/vim)
-- [hlchunk - highlight indent line](https://github.com/shellRaining/hlchunk.nvim)
+| plugin                                                                          | screenshoot             |
+| ------------------------------------------------------------------------------- | ----------------------- |
+| [neocord - discord status](https://github.com/IogaMaster/neocord)               | ../.github/neocord.png  |
+| [barbecue - vscode winbar](https://github.com/utilyre/barbecue.nvim)            | ../.github/winbar.png   |
+| [wakatime - record track code](https://wakatime.com/vim)                        | ../.github/wakatime.png |
+| [hlchunk - highlight indent line](https://github.com/shellRaining/hlchunk.nvim) | ../.github/hlchunk.png  |
 
-for ``custom/chadrc.lua`` you can use this one (cause i override a color for sync theme)
+for `custom/chadrc.lua` you can use this one (cause i override a color for sync theme)
 
 ```lua
 local M = {}
@@ -46,3 +48,4 @@ M.mappings = require "custom.mappings"
 
 return M
 ```
+
