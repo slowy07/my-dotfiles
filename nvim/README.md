@@ -10,7 +10,7 @@ https://nvchad.com/
 
 | plugin                                                                          | screenshoot             |
 | ------------------------------------------------------------------------------- | ----------------------- |
-| [neocord - discord status](https://github.com/IogaMaster/neocord)               | ../.github/neocord.png  |
+| [neocord - discord status](https://github.com/IogaMaster/neocord)               | ./.github/neocord.png  |
 | [barbecue - vscode winbar](https://github.com/utilyre/barbecue.nvim)            | ../.github/winbar.png   |
 | [wakatime - record track code](https://wakatime.com/vim)                        | ../.github/wakatime.png |
 | [hlchunk - highlight indent line](https://github.com/shellRaining/hlchunk.nvim) | ../.github/hlchunk.png  |
