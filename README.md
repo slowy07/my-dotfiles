@@ -41,7 +41,7 @@ im using starship for configuration prompt, you can used other one like ohmyzsh 
 
 ## sysinfo
 
-![rxfetch_info](./github/rxfetch.png)
+![rxfetch_info](.github/rxfetch.png)
 
 im using rxfetch for fetch all information about my sys, you can check [here](https://github.com/Mangeshrex/rxfetch)
 
