@@ -31,3 +31,21 @@ for additional plugin you can check on [`README.md`](nvim/README.md) and use def
 ![terminalhis](.github/atuin.png)
 
 for installation atuin shell history you can check on [atuinsh](https://github.com/atuinsh/atuin#install)
+
+## shell prompt
+
+![starship_shell_prompt_image](.github/starship.png)
+
+
+im using starship for configuration prompt, you can used other one like ohmyzsh as default, powerlevel10k, or this one, but for starship i recode for device detect. for installation you can out on [starship.rs](https://starship.rs/guide/#%F0%9F%9A%80-installation)
+
+## sysinfo
+
+![rxfetch_info](./github/rxfetch.png)
+
+im using rxfetch for fetch all information about my sys, you can check [here](https://github.com/Mangeshrex/rxfetch)
+
+## other
+
+**Fonts**
+its highly recommended using nerd fonts for this dots, cause many support any icon including font awesome icon. you can download and check on [nerdfonts.com](https://www.nerdfonts.com/)
