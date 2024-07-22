@@ -1,0 +1,14 @@
+headerbar {
+	color: #f0f0f0;
+	background-color: #0f0f0f;
+}
+
+headerbar:backdrop {
+	color: #f0f0f0;
+	background-color: #0f0f0f;
+}
+
+menubar {
+	color: #f0f0f0;
+	background-color: #0f0f0f
+}
