@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+case "$1" in
+  --ot)
+    alacritty;;
+  --oft)
+    alacritty --class FloaTerm,Alacritty;;
+  --ou)
+    alacritty --hold --class Updating,Alacritty -e yay -Syyu --devel;;
+  --ocu)
+	alacritty --hold --class Updating,Alacritty -e checkupdates;;
+  --or)
+    alacritty --class Ranger,Alacritty -e ranger;;
+  --ov)
+    alacritty -e nvim;;
+  --om)
+    alacritty --class MusicPlayer,Alacritty -e ncmpcpp;;
+  --of)
+    alacritty --hold --class Sysfetch,Alacritty -e ~/.local/bin/sysfetch    ;;
+  *)
+    echo "Opción no válida";;
+esac
+

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+feh --randomize --no-fehbg --bg-fill "$HOME"/.config/bspwm/rices/"$RICETHEME"/walls/
+exit 0

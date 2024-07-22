@@ -1,0 +1,80 @@
+
+window:
+  padding:
+    x: 10
+    y: 10
+
+  decorations: none
+
+  opacity: 1.0
+  dynamic_title: true
+
+  history: 10000
+  multiplier: 3
+
+font:
+  normal:
+    family: Agave Nerd Font
+    #style: Regular
+
+  bold:
+    family: Agave Nerd Font
+    #style: Bold
+
+  
+  italic:
+    family:  Agave Nerd Font
+
+    #style: Italic
+
+  bold_italic:
+    family: Agave Nerd Font
+    #style: Bold Italic
+
+  size: 8
+  offset:
+    x: -2
+    y: -2
+
+# Colors (i dont know) Andrea Rice
+colors:
+  primary:
+    background: '#F5EEE6'
+    foreground: '#505692'
+
+  normal:
+    black:   '#80859d'
+    red:     '#c04364'
+    green:   '#abd77a'
+    yellow:  '#ffcc57'
+    blue:    '#67d4f1'
+    magenta: '#7a7498'
+    cyan:    '#9bf4d5'
+    white:   '#b0b0b0'
+
+  bright:
+    black:   '#80859d'
+    red:     '#c03f61'
+    green:   '#a1d16c'
+    yellow:  '#f2be47'
+    blue:    '#50bfdc'
+    magenta: '#605692'
+    cyan:    '#83edc8'
+    white:   '#b0b0b0'
+    
+  cursor:
+    cursor: '#7a7498'
+    text:	'#F5EEE6'
+
+selection:
+  save_to_clipboard: false
+
+cursor:
+  style:
+    shape: block
+    blinking: on
+    
+  unfocused_hollow: false 
+  blink_interval: 550
+
+live_config_reload: true
