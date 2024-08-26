@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set_bspwm_config() {
 		bspc config border_width 0
-		bspc config top_padding 8
-		bspc config bottom_padding 50
+		bspc config top_padding 70
+		bspc config bottom_padding 20
 		bspc config normal_border_color "#9bced7"
 		bspc config active_border_color "#9bced7"
 		bspc config focused_border_color "#c3a5e6"
@@ -18,36 +18,41 @@ set_term_config() {
 		-e "s/family: .*/family: JetBrainsMono Nerd Font/g" \
 		-e "s/size: .*/size: 10/g"
 		
-		cat > "$HOME"/.config/alacritty/colors.yml <<- _EOF_
-				# Colors (Rose-Pine Moon) Cristina Rice
-				colors:
-				  primary:
-				    background: '#0e0e0e'
-				    foreground: '#ededed'
+		cat > "$HOME"/.config/kitty/current-theme.conf <<- _EOF_
+foreground              #dadada
+background              #141b1e
+selection_foreground    #dadada
+selection_background    #2d3437
 
-				  normal:
-				    black:   '#0e0e0e'
-				    red:     '#e76f51'
-				    green:   '#2a9d8F'
-				    yellow:  '#e9c46A'
-				    blue:    '#2a589D'
-				    magenta: '#c3a5e6'
-				    cyan:    '#eabbb9'
-				    white:   '#faebd7'
+# Cursor colors
+cursor                  #2d3437
+cursor_text_color       #dadada
 
-				  bright:
-				    black:   '#6f6e85'
-				    red:     '#ea6f91'
-				    green:   '#9bced7'
-				    yellow:  '#f1ca93'
-				    blue:    '#34738e'
-				    magenta: '#c3a5e6'
-				    cyan:    '#ebbcba'
-				    white:   '#e0def4'
-    
-				  cursor:
-				    cursor: '#c3a5e6'
-				    text:	'#1f1d29'
+# Normal colors
+color0                  #232a2d
+color1                  #e57474
+color2                  #8ccf7e
+color3                  #e5c76b
+color4                  #67b0e8
+color5                  #c47fd5
+color6                  #6cbfbf
+color7                  #b3b9b8
+
+# Bright colors
+color8                  #2d3437
+color9                  #ef7e7e
+color10                 #96d988
+color11                 #f4d67a
+color12                 #71baf2
+color13                 #ce89df
+color14                 #67cbe7
+color15                 #bdc3c2
+
+# Tab colors 
+active_tab_foreground   #141b1e
+active_tab_background   #8ccf7e
+inactive_tab_foreground #dadada
+inactive_tab_background #141b1e
 _EOF_
 }
 
