@@ -8,17 +8,19 @@ vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagn
   virtual_text = false,
 })
 
+
 M.base46 = {
+  theme = "everblush",
   integrations = { "dap" },
 }
 
 M.ui = {
-  theme = "everblush",
   statusline = {
-    theme = "vscode_colored",
+    theme = "minimal",
+    separator_style = "round",
   },
   ident = {
-    enable = false,
+    enable = true,
   },
   hl_override = {
     NvimTreeNormal = { bg = "#141b1e" },
@@ -38,12 +40,13 @@ M.ui = {
   nvdash = {
     load_on_startup = true,
   },
+
   tabufline = {
     enabled = false,
     show_numbers = true,
   },
   cmp = {
-    style = "flat_light",
+    style = "atom",
   },
 
   -- hl_override = {

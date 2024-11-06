@@ -67,6 +67,35 @@ return {
       require "configs.discord"
     end,
   },
+  { "nvchad/volt",     lazy = true },
+  {
+    "nvchad/minty",
+    lazy = true,
+    config = function()
+      require "configs.minty"
+    end,
+  },
+
+  -- {
+  --   "hrsh7th/nvim-cmp",
+  --   dependencies = {
+  --     {
+  --       "supermaven-inc/supermaven-nvim",
+  --       opts = {},
+  --     },
+  --   },
+  --
+  --   opts = function (_, opts)
+  --     opts.sources[1].trigger_chars = {"-"}
+  --     table.insert(opts.sources, 1, {name = "supermaven"})
+  --   end
+  -- },
+
+  { "nvchad/menu",     lazy = true },
+
+  { "nvchad/showkeys", cmd = "ShowkeysToggle", opts = { position = "top-center" } },
+
+  { "nvchad/timerly",  cmd = "TimerlyToggle" }
 
   --
   -- {

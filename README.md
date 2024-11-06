@@ -51,3 +51,11 @@ im using rxfetch for fetch all information about my sys, you can check [here](ht
 its highly recommended using nerd fonts for this dots, cause many support any icon including font awesome icon. you can download and check on [nerdfonts.com](https://www.nerdfonts.com/), more information:
 
 - Nitrogen - Wallpaper Selector
+
+
+# installation
+
+- clone this repository
+```
+git clone https://slowy07/my-dotfiles
+```

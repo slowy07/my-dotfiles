@@ -4,7 +4,7 @@ local on_init = require("nvchad.configs.lspconfig").on_init
 local capabilities = require("nvchad.configs.lspconfig").capabilities
 
 local lspconfig = require "lspconfig"
-local servers = { "gopls", "zls", "asm_lsp", "rust_analyzer", "nimls", "ltex", "fortls", "jdtls", "ts_ls" }
+local servers = { "gopls", "zls", "rust_analyzer", "nimls", "ltex", "fortls", "ts_ls", "jdtls",  "ruby_lsp", "ruff_lsp" }
 
 -- lsps with default config
 for _, lsp in ipairs(servers) do
@@ -15,20 +15,20 @@ for _, lsp in ipairs(servers) do
   }
 end
 
-lspconfig.pylsp.setup({
-  on_attach = on_attach,
-  on_init = on_init,
-  capabilities = capabilities,
-  settings = {
-    pylsp = {
-      plugins = {
-        pycodestyle = {
-          maxLineLength = 180
-        }
-      }
-    }
-  }
-})
+-- lspconfig.pylsp.setup({
+--   on_attach = on_attach,
+--   on_init = on_init,
+--   capabilities = capabilities,
+--   settings = {
+--     pylsp = {
+--       plugins = {
+--         pycodestyle = {
+--           maxLineLength = 180
+--         }
+--       }
+--     }
+--   }
+-- })
 
 lspconfig.rust_analyzer.setup({
   on_attach = on_attach,
