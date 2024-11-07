@@ -1,14 +1,3 @@
-![banner](.github/banner.png)
-
-
-## showcase
-
-![banner_desktop1](.github/dekstop_banner1.png)
-![banner_desktop2](.github/desktop_banner2.png)
-
-## color theme
-
-![colorblocks](.github/colorblocks.png)
 
 im using everblush for my current theme cause so calm and aesthetic. you can check on this [repository](https://github.com/Everblush)
 
@@ -58,4 +47,6 @@ its highly recommended using nerd fonts for this dots, cause many support any ic
 - clone this repository
 ```
 git clone https://slowy07/my-dotfiles
+chmod +x install
+./install --isntall
 ```
