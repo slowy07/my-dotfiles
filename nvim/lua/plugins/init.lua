@@ -2,31 +2,15 @@ return {
   {
     "stevearc/conform.nvim",
     -- event = 'BufWritePre', -- uncomment for format on save
-    config = function()
-      require "configs.conform"
-    end,
+    opts = require "configs.conform",
   },
 
   -- These are some examples, uncomment them if you want to see them work!
   {
     "neovim/nvim-lspconfig",
     config = function()
-      require("nvchad.configs.lspconfig").defaults()
       require "configs.lspconfig"
     end,
-  },
-
-  {
-    "williamboman/mason.nvim",
-    opts = {
-      ensure_installed = {
-        "lua-language-server",
-        "stylua",
-        "html-lsp",
-        "css-lsp",
-        "prettier",
-      },
-    },
   },
 
   {
@@ -53,14 +37,6 @@ return {
   },
 
   {
-    "rachartier/tiny-inline-diagnostic.nvim",
-    event = "VeryLazy",
-    config = function()
-      require "configs.inline-diagnostics"
-    end,
-  },
-
-  {
     "IogaMaster/neocord",
     event = "VeryLazy",
     config = function()
@@ -76,28 +52,16 @@ return {
     end,
   },
 
-  -- {
-  --   "hrsh7th/nvim-cmp",
-  --   dependencies = {
-  --     {
-  --       "supermaven-inc/supermaven-nvim",
-  --       opts = {},
-  --     },
-  --   },
-  --
-  --   opts = function (_, opts)
-  --     opts.sources[1].trigger_chars = {"-"}
-  --     table.insert(opts.sources, 1, {name = "supermaven"})
-  --   end
-  -- },
-
   { "nvchad/menu",     lazy = true },
 
   { "nvchad/showkeys", cmd = "ShowkeysToggle", opts = { position = "top-center" } },
 
-  { "nvchad/timerly",  cmd = "TimerlyToggle" }
+  { "nvchad/timerly",  cmd = "TimerlyToggle" },
 
-  --
+
+  -- test new blink
+  -- { import = "nvchad.blink.lazyspec" },
+
   -- {
   -- 	"nvim-treesitter/nvim-treesitter",
   -- 	opts = {
@@ -107,4 +71,5 @@ return {
   -- 		},
   -- 	},
   -- },
+
 }

@@ -10,4 +10,3 @@ require("hlchunk").setup({
     },
   }
 })
-

@@ -1,0 +1,79 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# format = """
+# $username\
+#  $directory\
+# $c\
+# $cpp\
+# $python\
+# $rust\
+# $shell\
+# $git_branch\
+# $package\
+# $battery\
+# $cmd_duration \
+#  $character\
+# """
+
+format = """
+$shell \
+$directory \
+$git_branch \
+$character\
+"""
+
+# Inserts a blank line between shell prompts
+add_newline = false
+
+# Replace the '❯' symbol in the prompt with '➜'
+[character] # The name of the module we are configuring is 'character'
+success_symbol = '[](bold green) [](bold yellow) [ ](bold green)' # The 'success_symbol' segment is being set to '➜' with the color 'bold green'
+error_symbol = '[ ✗](bold red) '
+
+[custom.ghost_pertama]
+format = '(bold green)'
+
+# Disable the package module, hiding it from the prompt completely
+[package]
+disabled = true
+
+[c]
+format = 'via [$name $version]($style)'
+
+[cpp]
+disabled = false
+format = 'via [$name $version]($style)'
+
+[cmd_duration]
+min_time = 500
+format = 'on [$duration](bold yellow)'
+
+[python]
+symbol = '🐍 '
+pyenv_version_name = true
+
+[shell]
+fish_indicator = '󰈺 '
+zsh_indicator = ''
+powershell_indicator = '_'
+unknown_indicator = '_'
+style = 'cyan bold'
+disabled = false
+
+[rust]
+format = 'via [⚙️ $version](red bold)'
+
+[battery]
+full_symbol = '🔋 '
+charging_symbol = '⚡️ '
+discharging_symbol = '💀 '
+
+
+[username]
+style_user = 'white bold'
+style_root = 'black bold'
+format = '[$user]($style) '
+disabled = false
+show_always = true
+aliases = { "corpuser034g" = "matchai" }
+

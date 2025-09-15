@@ -15,11 +15,6 @@ cp nvim ~/.config/
 ```
 for additional plugin you can check on [`README.md`](nvim/README.md) and use default configuration for ``chadrc.lua``.
 
-## shell history
-
-![terminalhis](.github/atuin.png)
-
-for installation atuin shell history you can check on [atuinsh](https://github.com/atuinsh/atuin#install)
 
 ## shell prompt
 
@@ -47,6 +42,4 @@ its highly recommended using nerd fonts for this dots, cause many support any ic
 - clone this repository
 ```
 git clone https://slowy07/my-dotfiles
-chmod +x install
-./install --isntall
 ```
