@@ -29,6 +29,11 @@ local highlights = {
   TotalLineText   = { fg = "#956dca", bg = "#232a2d" },
   DiagnosticsText = { fg = "#67b0e8", bg = "#232a2d" },
   LSPColor        = { fg = "#8ccf7e", bg = "#232a2d" },
+
+  DiagError       = { fg = "#e06c75", bg = "#232a2d" },
+  DiagWarn        = { fg = "#e5c07b", bg = "#232a2d" },
+  DiagInfo        = { fg = "#61afef", bg = "#232a2d" },
+  DiagHint        = { fg = "#98c379", bg = "#232a2d" },
 }
 
 for group, opts in pairs(highlights) do
@@ -41,10 +46,10 @@ _G.RecolorMode = function()
     n     = { fg = "#5599e2", bg = "#232a2d" },
     i     = { fg = "#e34f4f", bg = "#232a2d" },
     R     = { fg = "#69bfce", bg = "#141b1e" },
-    v     = { fg = "#e37e4f", bg = "#141b1e" },
+    v     = { fg = "#e37e4f", bg = "#232a2d" },
     V     = { fg = "#e37e4f", bg = "#141b1e" },
     ["V"] = { fg = "#e37e4f", bg = "#141b1e" },
-    c     = { fg = "#5679e3", bg = "#141b1e" },
+    c     = { fg = "#5679e3", bg = "#232a2d" },
     t     = { fg = "#5679e3", bg = "#141b1e" },
   }
 
@@ -73,12 +78,12 @@ _G.file = function()
     end
   end
 
-  return " " .. icon .. " "
+  return " " .. icon .. " " .. name
 end
 
 _G.git = function()
   if not vim.b[M.stbufnr()].gitsigns_head or vim.b[M.stbufnr()].gitsigns_git_status then
-    return ""
+    return " no repo"
   end
 
   local git_status = vim.b[M.stbufnr()].gitsigns_status_dict
@@ -91,22 +96,35 @@ _G.git = function()
   return " " .. branch_name .. added .. changed .. removed .. " "
 end
 
-_G.diagnostics = function()
+_G.diagnostics_color = function()
   if not rawget(vim, "lsp") then
-    return "󰞇"
+    return "%#DiagnosticsText#󰞇 %*"
   end
 
   local err = #vim.diagnostic.get(M.stbufnr(), { severity = vim.diagnostic.severity.ERROR })
   local warn = #vim.diagnostic.get(M.stbufnr(), { severity = vim.diagnostic.severity.WARN })
-  local hints = #vim.diagnostic.get(M.stbufnr(), { severity = vim.diagnostic.severity.HINT })
   local info = #vim.diagnostic.get(M.stbufnr(), { severity = vim.diagnostic.severity.INFO })
+  local hints = #vim.diagnostic.get(M.stbufnr(), { severity = vim.diagnostic.severity.HINT })
 
-  err = (err and err > 0) and (" " .. err .. " ") or " "
-  warn = (warn and warn > 0) and (" " .. warn .. " ") or " "
-  hints = (hints and hints > 0) and ("󰛩 " .. hints .. " ") or " "
-  info = (info and info > 0) and ("󰋼 " .. info .. " ") or " "
+  local parts = {}
+  if err > 0 then
+    table.insert(parts, "%#DiagError# " .. err .. " %*")
+  end
+  if warn > 0 then
+    table.insert(parts, "%#DiagWarn# " .. warn .. " %*")
+  end
+  if info > 0 then
+    table.insert(parts, "%#DiagInfo#󰋼 " .. info .. " %*")
+  end
+  if hints > 0 then
+    table.insert(parts, "%#DiagHint#󰛩 " .. hints .. " %*")
+  end
 
-  return " " .. err .. warn .. hints .. info
+  if #parts == 0 then
+    return "%#DiagnosticsText#󰞇 %*"
+  else
+    return table.concat(parts, "")
+  end
 end
 
 _G.lsp = function()
@@ -135,7 +153,7 @@ vim.opt.statusline = table.concat({
 
   "%#PathText#%{expand('%:p:h:t')}",
   "%#Separator#██",
-  "%#DiagnosticsText#%{v:lua.diagnostics()}",
+  "%{%v:lua.diagnostics_color()%}",
   "%#Separator#",
 
   "%=",
