@@ -2,6 +2,8 @@ require "nvchad.options"
 
 local M = {}
 
+
+
 M.stbufnr = function()
   return vim.api.nvim_win_get_buf(vim.g.statusline_winid or 0)
 end
@@ -12,7 +14,10 @@ local o = vim.o
 o.cursorlineopt = "both" -- to enable cursorline!
 o.background = "dark"
 vim.opt.relativenumber = true
-
+vim.opt.list = true
+vim.opt.listchars = {
+  eol = '↴',
+}
 
 local highlights = {
   Normal          = { fg = "#f4f4f4", bg = "#141b1e" },
@@ -58,6 +63,24 @@ _G.RecolorMode = function()
     vim.api.nvim_set_hl(0, "ModeText", hl)
   end
   return ""
+end
+
+_G.wpm_status = function()
+  local ok, wpmkita = pcall(require, "mywpm")
+  if not ok then
+    return "WPM: not ok"
+  end
+
+  local wpm = wpmkita.get_wpm()
+  if type(wpm) == "number" and wpm > 0 then
+    if wpm > 45 then
+      return ("󰈸 : %.0f WPM"):format(wpm)
+    else
+      return ("󰌌 : %.0f WPM"):format(wpm)
+    end
+  else
+    return "󰌌"
+  end
 end
 
 _G.SetFiletype = function(filetype)
@@ -158,8 +181,13 @@ vim.opt.statusline = table.concat({
 
   "%=",
 
+  "%=",
   "%#Separator#",
   "%#FileType#%{v:lua.file()}",
+  "%#Separator# ",
+
+  "%#Separator#",
+  "%#TotalLineText#%{v:lua.wpm_status()}",
   "%#Separator# ",
 
   "%#Separator#",
