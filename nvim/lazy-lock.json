@@ -33,6 +33,7 @@
   "timerly": { "branch": "main", "commit": "1c78999480af0e4f8201fe6bfa1e5e0b70a59acf" },
   "todo-comments.nvim": { "branch": "main", "commit": "31e3c38ce9b29781e4422fc0322eb0a21f4e8668" },
   "triforce.nvim": { "branch": "main", "commit": "4ce2ee1f29cd40312df0deed60f76b7d9a42ab51" },
+  "trouble.nvim": { "branch": "main", "commit": "bd67efe408d4816e25e8491cc5ad4088e708a69a" },
   "typr": { "branch": "main", "commit": "584e4ef34dea25a4035627794322f315b22d1253" },
   "ui": { "branch": "v3.0", "commit": "bea2af0a76c1098fac0988ad296aa028cad2a333" },
   "vim-wakatime": { "branch": "master", "commit": "d7973b157a632d1edeff01818f18d67e584eeaff" },

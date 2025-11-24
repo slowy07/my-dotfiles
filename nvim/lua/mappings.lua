@@ -31,3 +31,7 @@ vim.keymap.set({ "n", "v" }, "<RightMouse>", function()
 end, {})
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+
+-- trouble mappings
+vim.keymap.set("n", "<leader>td", "<cmd>Trouble diagnostics  filter.buf = 0 win.type = split win.position=right<CR>", {desc = "Diagnostics (Trouble)"})
+vim.keymap.set("n", "<leader>tl", "<cmd>Trouble loclist toggle<CR>", {desc = "Location list (Trouble)"})

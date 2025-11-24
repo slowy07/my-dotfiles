@@ -10,6 +10,24 @@ im using framework ohmyzsh for manage zsh configuration. for installation you ca
 im using nvchad for nvim configuration, you can check on [nvchad.com](https://nvchad.com/) for installation.
 after installing, you can copy and paste the configuration to ``.config/nvim``
 
+other plugin are used
+- indent blankline
+- neocord
+- wakatime
+- markview
+- triforce
+- todo.nvim
+- trouble
+- timerly
+- floatterm
+- mywpm
+- hlchunk
+- typr
+- showkeys
+- minty
+
+> this are used for daily driver and content creation
+
 ```
 cp nvim ~/.config/
 ```
@@ -25,7 +43,7 @@ im using starship for configuration prompt, you can used other one like ohmyzsh 
 
 ## sysinfo
 
-![rxfetch_info](.github/rxfetch.png)
+![rxfetch_images](.github/rxfetch.png)
 
 im using rxfetch for fetch all information about my sys, you can check [here](https://github.com/Mangeshrex/rxfetch)
 

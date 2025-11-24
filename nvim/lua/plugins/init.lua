@@ -74,12 +74,6 @@ return {
     opts = {},
     cmd = "FloatermToggle",
   },
-  {
-    "folke/todo-comments.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
-    opts = {
-    }
-  },
 
   { 'Civitasv/cmake-tools.nvim', opts = {} },
 
@@ -143,6 +137,27 @@ return {
   {
     "OXY2DEV/markview.nvim",
     lazy = false,
+    preview = {
+      icon_provider = "internal",
+    }
   },
+
+  -- todo nvim
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    lazy = false,
+    config = function()
+      require "configs.todo"
+    end
+  },
+
+  -- trouble nvim
+  {
+    "folke/trouble.nvim",
+    opts = {},
+    lazy = false,
+    cmd = "Trouble",
+  }
 
 }
