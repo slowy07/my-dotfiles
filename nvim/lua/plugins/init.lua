@@ -13,6 +13,19 @@ return {
     end,
   },
 
+  -- test new blink
+  -- { import = "nvchad.blink.lazyspec" },
+
+  -- {
+  -- 	"nvim-treesitter/nvim-treesitter",
+  -- 	opts = {
+  -- 		ensure_installed = {
+  -- 			"vim", "lua", "vimdoc",
+  --      "html", "css"
+  -- 		},
+  -- 	},
+  -- },
+
   {
     "wakatime/vim-wakatime",
     lazy = false,
@@ -90,37 +103,7 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = {
-      ensure_installed = {
-        "vim", "lua", "vimdoc",
-        "html", "css",
-      },
-      highlight = {
-        enable = true,
-      }
-    },
-
-    config = function(_, opts)
-      local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-      parser_config.xvrlang = {
-        install_info = {
-          -- url = "https://github.com/WargaSlowy/xvrlang-treesitter",
-          url = "~/Documents/project/xvrlang-treesitter",
-          files = { "src/parser.c" },
-          branch = "main",
-          generate_requires_npm = false,
-          requires_generate_from_grammar = false,
-        },
-        filetype = "xvr",
-        vim.filetype.add({
-          extension = {
-            xvrlang = "xvr",
-          }
-        })
-      }
-
-      require("nvim-treesitter.configs").setup(opts)
-    end
+    build = ":TSUpdate",
   },
 
   {
@@ -131,15 +114,6 @@ return {
     config = function()
       require "configs.triforce"
     end,
-  },
-
-  -- markdown preview
-  {
-    "OXY2DEV/markview.nvim",
-    lazy = false,
-    preview = {
-      icon_provider = "internal",
-    }
   },
 
   -- todo nvim
@@ -158,6 +132,10 @@ return {
     opts = {},
     lazy = false,
     cmd = "Trouble",
-  }
+  },
 
+  {
+    "OXY2DEV/markview.nvim",
+    lazy = false,
+},
 }

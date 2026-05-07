@@ -9,20 +9,9 @@ require("triforce").setup({
     achievements = true,  -- Show achievement unlock notifications
   },
 
-  -- Keymap configuration
-  keymap = {
-    show_profile = "<leader>tp", -- Set to nil to disable default keymap
-  },
 
   -- Auto-save interval (in seconds)
   auto_save_interval = 300, -- Save stats every 5 minutes
-
-  -- Add custom language support
-  custom_languages = {
-    gleam = { icon = "✨", name = "Gleam" },
-    odin = { icon = "🔷", name = "Odin" },
-    -- Add more languages...
-  },
 
   -- Customize level progression (optional)
   level_progression = {
