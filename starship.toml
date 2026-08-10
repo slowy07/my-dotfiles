@@ -17,8 +17,12 @@
 
 format = """
 $shell \
-$directory \
-$git_branch \
+$directory\
+$git_branch\
+$cpp\
+$c\
+$golang\
+$python\
 $character\
 """
 
@@ -27,8 +31,10 @@ add_newline = false
 
 # Replace the '❯' symbol in the prompt with '➜'
 [character] # The name of the module we are configuring is 'character'
-success_symbol = '[](bold green) [](bold yellow) [ ](bold green)' # The 'success_symbol' segment is being set to '➜' with the color 'bold green'
-error_symbol = '[ ✗](bold red) '
+# success_symbol = '[](bold green) [](bold yellow) [ ](bold green)' # The 'success_symbol' segment is being set to '➜' with the color 'bold green'
+# error_symbol = '[ ✗](bold red) '
+success_symbol = ' [»](bold green)' # The 'success_symbol' segment is being set to '➜' with the color 'bold green'
+error_symbol = ' [✗](bold red) '
 
 [custom.ghost_pertama]
 format = '(bold green)'
@@ -38,26 +44,33 @@ format = '(bold green)'
 disabled = true
 
 [c]
-format = 'via [$name $version]($style)'
+format = '[$name $version]($style)'
 
 [cpp]
+symbol = ""
 disabled = false
-format = 'via [$name $version]($style)'
+format = '[$symbol $version]($style)'
 
 [cmd_duration]
 min_time = 500
 format = 'on [$duration](bold yellow)'
 
 [python]
-symbol = '🐍 '
-pyenv_version_name = true
+symbol = ""
+disabled = false
+format = '[$symbol $version]($style)'
+
+[golang]
+symbol = "󰟓"
+disabled = false
+format = '[$symbol $version]($style)'
 
 [shell]
-fish_indicator = '󰈺 '
-zsh_indicator = ''
+fish_indicator = ' 󰈺 '
+zsh_indicator = ' 󰟪 '
 powershell_indicator = '_'
 unknown_indicator = '_'
-style = 'cyan bold'
+style = 'bg:#8ccf7e fg:#141b1e'
 disabled = false
 
 [rust]
@@ -76,4 +89,3 @@ format = '[$user]($style) '
 disabled = false
 show_always = true
 aliases = { "corpuser034g" = "matchai" }
-
