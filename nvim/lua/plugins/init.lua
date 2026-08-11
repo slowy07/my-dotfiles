@@ -92,6 +92,7 @@ return {
 
   {
     "slowy07/mywpm.nvim",
+    dependencies = "nvzone/volt",
     event = "VeryLazy",
     config = function()
       require "configs.mywpm"
@@ -138,4 +139,16 @@ return {
     "OXY2DEV/markview.nvim",
     lazy = false,
 },
+
+{
+  'richwomanbtc/overleaf.nvim',
+lazy = false,
+  config = function()
+    require('overleaf').setup({
+      cookie = 's%3A752DdyZE89sWKTeSg267rCa6kX9pPoxE.pIYlmst60FSjHwqCVNnRo7qxpFlTmnD3jFU6dgBLYh8',
+    })
+  end,
+  build = 'cd node && npm install',
+}
+
 }

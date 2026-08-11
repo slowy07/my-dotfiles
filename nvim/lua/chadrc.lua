@@ -21,6 +21,9 @@ M.base46 = {
 M.nvdash = {
   load_on_startup = true,
   header = {
+    "",
+    "vscode killers, and jetbrains slayer",
+    "",
     -- "           ▄ ▄                   ",
     -- "       ▄   ▄▄▄     ▄ ▄▄▄ ▄ ▄     ",
     -- "       █ ▄ █▄█ ▄▄▄ █ █▄█ █ █     ",
@@ -30,21 +33,22 @@ M.nvdash = {
     -- "▄ █ █▄█ █▄█ █ █ █▄█ █ █▄█ ▄▄▄ █ █",
     -- "█▄█ ▄ █▄▄█▄▄█ █ ▄▄█ █ ▄ █ █▄█▄█ █",
     -- "    █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█ █▄█▄▄▄█    ",
-    -- "",
-    -- "",
   },
 }
 M.ui = {
+  telescope = {
+    style = "borderless"
+  },
   tabufline = {
-    enabled = true,
+    enabled = false,
   },
   statusline = {
-    theme = "minimal",
-    separator_style = "round",
+    theme = "vscode_colored",
+    separator_style = "default",
   },
   cmp = {
-    style = "atom"
-  }
+    style = "atom_colored"
+  },
 }
 
 return M

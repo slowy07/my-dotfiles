@@ -30,3 +30,12 @@ vim.keymap.set({ "n", "v" }, "<RightMouse>", function()
 end, {})
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+
+-- Toggle inlay hints
+map("n", "<leader>ih", function()
+  vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }), { bufnr = 0 })
+end, { desc = "Toggle inlay hints" })
+
+map("n", "<leader>mw", function()
+  require("mywpm").open_dashboard()
+end, { desc = "Open mywpm dashboard" })
