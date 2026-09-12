@@ -1,4 +1,7 @@
 
+![showcase_1](.github/showcase_1.png)
+![showcase_2](.github/showcase_2.png)
+
 im using everblush for my current theme cause so calm and aesthetic. you can check on this [repository](https://github.com/Everblush)
 
 ## zsh
