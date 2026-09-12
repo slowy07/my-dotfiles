@@ -131,7 +131,7 @@ $gray: lighten($bg, 24%);
   color: $fg;
   padding: 0 0.7rem;
   border-radius: 50%;
-  font-size: 2.0rem;
+  font-size: 1.5rem;
 }
 
 .netspeed {
@@ -143,23 +143,27 @@ $gray: lighten($bg, 24%);
 
 .txt {
   font-size: 1.2rem;
-  font-family: Iosevka;
+  font-family: JetbrainsMono Light;
   color: $fg;
+}
+
+.cuteIcon {
+  background: $bg-2;
+  border-radius: 1rem;
 }
 
 .cuteIcon label:nth-child(1) {
   background: $blue;
   color: $bg;
-  border-radius: 50% 0 0 50%;
-  padding: 0.15rem 0.5rem;
-  padding-left: 0.7rem;
+  border-radius: 50%;
+  padding: 0rem 0.7rem;
+  margin: 0.1rem 0rem 0.1rem 0.1rem;
 }
 
 .cuteIcon label:nth-child(2) {
-  background: $bg-2;
   padding: 0.15rem 0.5rem;
   padding-right: .7rem;
-  border-radius: 0 50% 50% 0;
+  margin-left: 0.15rem;
 }
 
 .cpuIcon label:nth-child(1) {
@@ -171,11 +175,10 @@ $gray: lighten($bg, 24%);
   color: $red;
   background: $bg-3;
   font-size: 1.2rem;
-  padding-left: 0.9rem;
 }
 
 .tempIcon label:nth-child(2) {
-  background: $bg-2;
+  padding-right: 0.7rem;
 }
 
 .ramIcon label:nth-child(1) {

@@ -1,6 +1,8 @@
 (defvar volume_slider true)
 (defvar show_netspeed false)
 
+(defpoll volume_val :interval "1s" :initial "50" `pactl get-sink-volume @DEFAULT_SINK@ | grep -oE '[0-9]+%' | head -1 | tr -d '%'`)
+
 (defpoll netspeed :interval "2s" `bash $HOME/.config/bspwm/eww/bar/scripts/netspeed.sh`)
 
 (defwidget powerBtn []  
@@ -47,7 +49,7 @@
           :orientation "h"
           :min 0
           :max 100
-          :value 50
+          :value "${volume_val}"
           :round-digits 0
           :value-pos "right"
           :onchange "pactl set-sink-volume @DEFAULT_SINK@ {}%"))))

@@ -13,18 +13,21 @@
            :windowtype "dock"
            :wm-ignore false
   (centerbox  :class "zuup"
-    (left)
+    (left :mon "HDMI-A-0")
     (middle)
     (right)))
 
-;; Second monitor: small dock showing only that monitor's workspaces
+;; Second monitor: same full bar, but that monitor's workspaces
 (defwindow dock2
 		   :monitor "eDP"
            :geometry (geometry :x "0%"
                                :y "-0.5%"
+                               :width "90%"
                                :anchor "bottom center")
            :reserve (struts :side "bottom" :distance "63px")
-:windowtype "dock"
+ :windowtype "dock"
              :wm-ignore false
-  (box :class "zuup"
-    (workspaces_mon :monitor "eDP")))
+  (centerbox :class "zuup"
+    (left :mon "eDP")
+    (middle)
+    (right)))

@@ -1,10 +1,11 @@
 # eww Bar (dock)
 
 Bottom-centre dock for bspwm. Ported/simplified from siduck/stow_dots' eww bar, used on
-the `hela` rice of the gh0stzk bspwm dots. Runs on one daemon with two windows:
+the `hela` rice of the gh0stzk bspwm dots. Runs on one daemon with two windows—both full
+bars, identical except that each shows **its own monitor's workspaces**:
 
-- `dock`  — full bar on the primary monitor: workspaces + taskbar + system modules.
-- `dock2` — small strip on a second monitor showing only that monitor's workspaces.
+- `dock`  — primary monitor (HDMI-A-0): workspaces 1-4.
+- `dock2` — second monitor (eDP): workspaces 5-8.
 
 ## Structure
 
@@ -17,7 +18,7 @@ the `hela` rice of the gh0stzk bspwm dots. Runs on one daemon with two windows:
     ├── bar.yuck        defwindow dock + dock2 (_docks_)
     ├── bar.scss        all bar styling (imports colors.scss)
     ├── src/
-    │   ├── left.yuck   distro icon (opens app menu), workspaces, taskbar
+    │   ├── left.yuck   distro icon (opens app menu), workspaces, taskbar (`left` takes a `:mon` arg so each dock renders its own monitor's workspaces)
     │   ├── middle.yuck clock
     │   ├── right.yuck  updates, temp, battery, ram, cpu, volume, wifi+netspeed, power, systray
     │   └── workspaces.yuck  per-monitor workspace listeners (dock + dock2)
@@ -53,8 +54,8 @@ glyphs in the widgets (left/right.yuck). Keep sub-elements (`.netspeed`, `.works
 on the same family — they declare it explicitly.
 
 ### Position / size / reserve
-`bar.yuck` defwindow:
-- `:width "90%"` — bar width (dock; dock2 is auto-sized).
+`bar.yuck` defwindow (both docks):
+- `:width "90%"` — bar width (both docks; second monitor is narrower, centerbox handles it).
 - `:anchor "bottom center"`, `:y "-0.5%"` — bottom-centre placement.
 - `:reserve (struts :side "bottom" :distance "63px")` — space reserved for the bar.
 
@@ -64,9 +65,10 @@ hide behind the bar.
 
 ### Monitoring a different display
 `bspc monitor <name> -d 1 2 3 4` defines a monitor's desktop set (this REPLACES the current
-list). The split in this config is HDMI-A-0 → 1-4, eDP → 5-8. The dock assigns a monitor
-with the `:monitor` attr and each `workspaces_mon` widget takes a `:monitor` string; the
-`WorkSpaces` script only renders that monitor's desktops (focused/occupied/empty).
+list). The split in this config is HDMI-A-0 → 1-4, eDP → 5-8. The `defwindow` assigns each
+dock a monitor with `:monitor`; the `left` widget takes that monitor's name (`:mon` arg)
+and passes it to `workspaces_mon`, so each dock shows only its own desktops
+(focused/occupied/empty).
 
 ### Workspaces appearance
 `bar.scss`:
@@ -84,6 +86,13 @@ eww's built-in magic vars `EWW_CPU`, `EWW_RAM`, `EWW_TEMPS`, `EWW_BATTERY`, `EWW
 - **Updates**: polls `~/.cache/Updates.txt` (written by `bin/Updates`).
 - **Taskbar**: `scripts/taskbar.sh` + `utils.sh` handle per-window icons, pinning, and the
   multi-window menu.
+
+### System-info icon pills
+The counter modules (temp/battery/ram/cpu) are one capsule per entry: the whole `box` is a
+`$bg-2` pill (`.cuteIcon { border-radius: 1rem }`) with the icon as a filled circle at its
+left end and the value text after it. Glyphs are kept glyph-centered with symmetric
+padding; don't add asymmetric `padding-left` overrides on `label:nth-child(1)` or the icon
+visually shifts inside the circle.
 
 ### onclicks and IPC
 Buttons shell out to scripts. Two rules that keep clicks working:

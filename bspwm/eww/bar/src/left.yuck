@@ -3,8 +3,8 @@
 (defwidget distroIcon []  
   (button :halign "start" :onclick "PATH=\"$HOME/.config/bspwm/bin:$PATH\" OpenApps --menu" :class "distroIcon"  ''))
 
-(defwidget left []
+(defwidget left [mon]
   (box :valign "center" :space-evenly false
     (distroIcon)
-    (workspaces_mon :monitor "HDMI-A-0")
+    (workspaces_mon :monitor "${mon}")
     (taskbar)))
