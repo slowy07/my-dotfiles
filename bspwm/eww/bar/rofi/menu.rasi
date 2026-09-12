@@ -1,0 +1,68 @@
+configuration {
+  location: 7;
+  me-select-entry: "MousePrimary";
+  me-accept-entry: "!MousePrimary";
+  font: "JetBrainsMono NF Bold 11";
+}
+
+* {
+    main-bg: #141b1e;
+    main-fg: #dadada;
+    select-bg: #232a2d;
+    select-fg: #dadada;
+    accent: #67b0e8;
+}
+
+window {
+    background-color: @main-bg;
+    width: 300px;
+    border-radius: 8px;
+    border: 1px solid @select-bg;
+}
+
+inputbar {
+    children: [prompt,entry];
+    background-color: @select-bg;
+    border-radius: 5px;
+    padding: 6px;
+}
+
+prompt {
+    background-color: @accent;
+    padding: 6px;
+    text-color: @main-bg;
+    border-radius: 3px;
+}
+
+entry {
+    padding: 6px;
+    text-color: @main-fg;
+    background-color: @select-bg;
+    placeholder: "Search";
+}
+
+listview {
+    padding: 3px;
+    background-color: @main-bg;
+    scrollbar: false;
+}
+
+#element {
+      padding: 6px;
+}
+
+#element.normal.normal {
+    background-color: @main-bg;
+    text-color:       @main-fg;
+}
+
+#element.selected {
+    background-color: @select-bg;
+    text-color:       @select-fg;
+    border-radius: 3px;
+}
+
+#element.alternate.normal {
+    background-color: @main-bg;
+    text-color:       @main-fg;
+}

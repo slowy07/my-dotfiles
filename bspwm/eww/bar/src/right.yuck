@@ -1,0 +1,66 @@
+(defvar volume_slider true)
+(defvar show_netspeed false)
+
+(defpoll netspeed :interval "2s" `bash $HOME/.config/bspwm/eww/bar/scripts/netspeed.sh`)
+
+(defwidget powerBtn []  
+  (button :onclick "$HOME/.config/bspwm/bin/ScreenLocker & loginctl suspend &" :class "powerBtn"  ''))
+
+(defwidget bartemperature []
+   (box :class "cuteIcon tempIcon" :space-evenly false
+     (label :text  "")
+     (label :class "txt" :text "${round(EWW_TEMPS.K10TEMP_TCTL, 0)}")))
+
+(defwidget barbattery []
+   (box :class "cuteIcon tempIcon" :space-evenly false
+     (label :text  "")
+     (label :class "txt" :text "${round(EWW_BATTERY.total_avg, 0)}%")))
+
+(defwidget barram []
+ (box :class "cuteIcon ramIcon" :space-evenly false
+  (label :text  "")
+  (label :class "txt" :text "${round((EWW_RAM.used_mem/EWW_RAM.total_mem) * 100, 0 )}%")))
+
+(defwidget barcpu []
+   (box :class "cuteIcon cpuIcon" :space-evenly false
+     (label :text  "")
+     (label :class "txt" :text "${round(EWW_CPU.avg,0)}%")))          
+
+(defwidget barwifi []
+  (box :class "wifi-slider" :space-evenly false :spacing 5
+    (button :class "wifiIcon"
+      :onclick "bar/scripts/utils.sh toggle_netspeed"
+      "${EWW_NET.wlan0 == 'null'? '󰤭' : '󰤨'}")
+    (revealer :reveal "${show_netspeed}" :transition "slideright"
+      (label :class "netspeed" :text netspeed))))
+
+(defpoll pkgupdates :initial "0" :interval "1000s" `cat $HOME/.cache/Updates.txt 2>/dev/null`)
+
+(defwidget pkgupdate_counter []
+  (box :class "txt pkgupdates" "  ${pkgupdates}"))
+
+(defwidget volume_slider_widget []
+  (box :space-evenly false  :class 'volume-slider'
+      (button :onclick "bar/scripts/utils.sh toggle_volume" :class "theme_switcher" "")
+      (revealer :reveal "${volume_slider}" :transition "slideright"
+         (scale
+          :orientation "h"
+          :min 0
+          :max 100
+          :value 50
+          :round-digits 0
+          :value-pos "right"
+          :onchange "pactl set-sink-volume @DEFAULT_SINK@ {}%"))))
+
+(defwidget right []
+  (box :valign "center" :halign "end" :space-evenly false :class "right modal"
+    :spacing 9
+    (pkgupdate_counter)
+    (bartemperature)
+    (barbattery)
+    (barram)
+    (barcpu)
+    (volume_slider_widget)
+    (barwifi)
+    (powerBtn)
+    (systray  :icon-size 24 :spacing 3  :prepend-new true :orientation "h"  :class "tray")))

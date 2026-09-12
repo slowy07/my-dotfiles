@@ -1,0 +1,30 @@
+(include "bar/src/left.yuck")
+(include "bar/src/middle.yuck")
+(include "bar/src/right.yuck")
+(include "bar/src/workspaces.yuck")
+
+(defwindow dock
+		   :monitor 0
+           :geometry (geometry :x "0%"
+                               :y "-0.5%"
+                               :width "90%"
+                               :anchor "bottom center")
+           :reserve (struts :side "bottom" :distance "63px")
+           :windowtype "dock"
+           :wm-ignore false
+  (centerbox  :class "zuup"
+    (left)
+    (middle)
+    (right)))
+
+;; Second monitor: small dock showing only that monitor's workspaces
+(defwindow dock2
+		   :monitor "eDP"
+           :geometry (geometry :x "0%"
+                               :y "-0.5%"
+                               :anchor "bottom center")
+           :reserve (struts :side "bottom" :distance "63px")
+:windowtype "dock"
+             :wm-ignore false
+  (box :class "zuup"
+    (workspaces_mon :monitor "eDP")))

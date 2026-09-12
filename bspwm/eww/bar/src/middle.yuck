@@ -1,0 +1,8 @@
+(defpoll datetime :interval "1s" "date '+%a %e | %H:%M'")
+
+(defwidget time []
+  (label :text datetime :class 'txt datetime'))
+
+(defwidget middle []
+  (box :valign "center" :halign "end" :space-evenly false
+    (time)))

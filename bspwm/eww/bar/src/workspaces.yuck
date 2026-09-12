@@ -1,0 +1,8 @@
+;; Per-monitor workspaces (gh0stzk WorkSpaces pattern)
+(deflisten workspace_mon0 "bar/scripts/WorkSpaces HDMI-A-0")
+(deflisten workspace_mon1 "bar/scripts/WorkSpaces eDP")
+
+(defwidget workspaces_mon [monitor]
+  (box :class "workspaces-mon"
+       (box :visible {monitor == "HDMI-A-0"} :class "ws-wrap" (literal :content workspace_mon0))
+       (box :visible {monitor == "eDP"} :class "ws-wrap" (literal :content workspace_mon1))))

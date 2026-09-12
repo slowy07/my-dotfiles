@@ -1,0 +1,10 @@
+(include "bar/src/modules/dock.yuck")
+
+(defwidget distroIcon []  
+  (button :halign "start" :onclick "PATH=\"$HOME/.config/bspwm/bin:$PATH\" OpenApps --menu" :class "distroIcon"  ''))
+
+(defwidget left []
+  (box :valign "center" :space-evenly false
+    (distroIcon)
+    (workspaces_mon :monitor "HDMI-A-0")
+    (taskbar)))

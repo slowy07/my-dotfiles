@@ -1,0 +1,262 @@
+$bg-2: lighten($bg, 4%);
+$bg-3: lighten($bg, 8%);
+$bg-4: lighten($bg, 12%);
+$gray: lighten($bg, 24%);
+
+.zuup {
+  background: $bg;
+  padding: 0.4rem 0.5rem;
+  font-family: "JetbrainsMono Nerd Font Mono SemiBold";
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+// :left
+
+// per-monitor workspace buttons (both docks)
+.workspaces-mon {
+  background: $bg;
+  padding: 0.2rem 0.6rem;
+  border-radius: .5rem;
+  font-family: "JetbrainsMono Nerd Font Mono SemiBold";
+  font-size: 1.3rem;
+}
+
+.workspaces-mon button {
+  margin: 0.15rem;
+}
+
+.workspace-focused {
+  color: $green;
+  border-radius: 50%;
+  padding: 0rem 0.55rem;
+}
+
+.workspace-occupied {
+  color: $blue;
+}
+
+.workspace-empty {
+  color: $bg-4;
+}
+
+.workspace-empty:hover,
+.workspace-occupied:hover {
+  color: $green;
+}
+
+.distroIcon {
+  padding: 0.0rem 0.6rem;
+  padding-right: 1.1rem;
+  border-radius: 30%;
+  color: $green;
+  background: mix($bg, $green, 90%);
+  margin: 0.15rem 0;
+  font-size: 1.4rem;
+  font-family: JetbrainsMono Nerd Font;
+}
+
+.distroIcon:hover {
+  background: $blue;
+  color: $bg;
+  transition: 0.3s ease-in-out;
+  border-radius: 50%;
+}
+
+// middle
+
+.taskbar {
+  background: $bg;
+}
+
+.taskicon {
+  padding: 0.3rem;
+  border-radius: 0.5rem;
+  margin: 0.1rem 0;
+}
+
+.taskicon_focused {
+  background: $bg-3;
+}
+
+.taskicon_unfocused {
+  background: $bg-2;
+}
+
+.taskicon_minimized {
+  border: 1px solid $bg-4;
+}
+
+.taskicon:hover {
+  background: $bg-2;
+}
+
+.pinbtn {
+  background: $bg-2;
+  padding: 0 0.8rem;
+  border-radius: 0.5rem;
+  margin: 0.2rem;
+}
+
+.pinbtn:hover {
+  background: $bg-3;
+}
+
+// right
+
+.datetime {
+  margin-right: 0.5rem;
+}
+
+.powerBtn {
+  padding: 0 0.9rem;
+  border-radius: 50%;
+  color: $red;
+  font-size: 1.6rem;
+}
+
+.powerBtn:hover {
+  background: $red;
+  color: $bg;
+  transition: 0.3s ease-in-out;
+  border-radius: 50%;
+}
+
+.wifi-slider {
+  background-color: $bg-2;
+  border-radius: 1rem;
+}
+
+.wifiIcon {
+  color: $fg;
+  padding: 0 0.7rem;
+  border-radius: 50%;
+  font-size: 2.0rem;
+}
+
+.netspeed {
+  color: $green;
+  font-family: "JetbrainsMono Nerd Font Mono SemiBold";
+  font-size: 1.2rem;
+  padding: 0 0.7rem 0 0.1rem;
+}
+
+.txt {
+  font-size: 1.2rem;
+  font-family: Iosevka;
+  color: $fg;
+}
+
+.cuteIcon label:nth-child(1) {
+  background: $blue;
+  color: $bg;
+  border-radius: 50% 0 0 50%;
+  padding: 0.15rem 0.5rem;
+  padding-left: 0.7rem;
+}
+
+.cuteIcon label:nth-child(2) {
+  background: $bg-2;
+  padding: 0.15rem 0.5rem;
+  padding-right: .7rem;
+  border-radius: 0 50% 50% 0;
+}
+
+.cpuIcon label:nth-child(1) {
+  color: $blue;
+  background: $bg-3;
+}
+
+.tempIcon label:nth-child(1) {
+  color: $red;
+  background: $bg-3;
+  font-size: 1.2rem;
+  padding-left: 0.9rem;
+}
+
+.tempIcon label:nth-child(2) {
+  background: $bg-2;
+}
+
+.ramIcon label:nth-child(1) {
+  color: $yellow;
+  background: $bg-3;
+}
+
+.pkgupdates {
+  color: lighten($gray, 20%);
+  margin-right: 0.5rem;
+}
+
+.theme_switcher {
+  background: $bg-2;
+  color: $green;
+  padding: 0 0.8rem;
+  border-radius: 50%;
+}
+
+.theme_switcher:hover {
+  background: lighten($bg, 5%);
+  color: $fg;
+  transition: 0.5s ease-in-out;
+  border-radius: 30%;
+  border: 1px solid $bg-3;
+}
+
+.tray {
+  background: $bg-2;
+  padding: 0 0.5rem;
+  border-radius: 20%;
+}
+
+.tray menu {
+  padding: 5px;
+  font-family: Roboto;
+  font-size: 17px;
+  background: $bg-2;
+
+  >menuitem {
+    padding: 5px 10px;
+
+    &:disabled label {
+      color: $gray;
+    }
+
+    &:hover {
+      background: $bg-4;
+      border-radius: 5px;
+    }
+  }
+}
+
+.volume-slider {
+  background-color: $bg-2;
+  border-radius: 1rem;
+
+  button {
+    color: $fg ;
+    background-color: $bg-3;
+    padding: 0 10px 0 10px;
+    border-radius: 1rem;
+    font-size: 1.9rem;
+  }
+
+  button:hover {
+    background-color: $bg-4;
+    color: $fg;
+  }
+
+  scale trough {
+    background-color: $bg-4;
+    min-height: 15px;
+    min-width: 50px;
+    border-radius: .5rem;
+    margin: 0rem .7rem 0 .7rem;
+  }
+
+  scale highlight {
+    background-color: $blue;
+    min-height: 6px;
+    border-radius: .5rem;
+  }
+}

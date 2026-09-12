@@ -1,0 +1,27 @@
+; vars
+(defvar apps "[]")
+(defvar clicked_win '')
+
+; dock
+(defwidget taskicon [data]
+   (box :space-evenly false
+     ; icon btn
+     (button
+          :onclick "bar/scripts/utils.sh taskicon_click ${data.name} ${data.id} ${data.state} ${data.cmd}"
+          :onrightclick "bar/scripts/utils.sh pin_app_toggle ${data.name}"
+          :class "taskicon taskicon_${data.state}"
+
+           (image :path "${data.icon}" :image-width 30))
+
+     ; pinn app btn with revealer
+     (revealer :reveal {clicked_win == data.name + "_on"} :transition "slideright"
+       (button
+        :class "pinbtn txt"
+        :onclick "bar/scripts/utils.sh ${data.id == "null"? "un" : "" }pin_app ${data.name} ${data.icon} ${data.id}"
+          {data.id == "null" ? "Unpin ?": "  Pin App"}))))
+
+; tasklist
+(defwidget taskbar []
+  (box :halign "end"  :class "taskbar" :space-evenly false :spacing 5
+     (for obj in apps
+       (taskicon :data obj))))
