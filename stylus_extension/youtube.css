@@ -1,0 +1,341 @@
+/* youtube TUI */
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: "CozetteVector", "Cascadia Code", "Fira Code",
+                 "JetBrains Mono", "SF Mono", "Consolas", monospace !important;
+    -webkit-font-smoothing: none !important;
+    font-smooth: never !important;
+  }
+
+  :root {
+    /* Core Everblush surfaces */
+    --eb-bg:       #141b1e;   /* Background */
+    --eb-bg-alt:   #232a2d;   /* Lighter Background */
+    --eb-panel:    #1a2124;   /* Slightly lifted panel */
+
+    /* Everblush accent spectrum */
+    --eb-red:      #e57474;
+    --eb-green:    #8ccf7e;
+    --eb-yellow:   #e5c76b;
+    --eb-blue:     #67b0e8;
+    --eb-magenta:  #c47fd5;
+    --eb-cyan:     #6cbfbf;
+
+    /* Everblush neutrals */
+    --eb-gray:     #b3b9b8;   /* Light Gray */
+    --eb-ink:      #dadada;   /* White / Foreground */
+    --eb-dim:      #5c6a6e;   /* Derived muted tone */
+    --eb-border:   #2f3b3f;   /* Derived border tone */
+  }
+
+  /* Override YouTube's own theme variables */
+  html[dark],
+  :root {
+    --yt-spec-base-background:        #141b1e !important;
+    --yt-spec-raised-background:      #232a2d !important;
+    --yt-spec-menu-background:        #232a2d !important;
+    --yt-spec-general-background-a:   #141b1e !important;
+    --yt-spec-general-background-b:   #1a2124 !important;
+    --yt-spec-general-background-c:   #232a2d !important;
+    --yt-spec-brand-background-solid: #141b1e !important;
+    --yt-spec-brand-background-primary:   #232a2d !important;
+    --yt-spec-brand-background-secondary: #1a2124 !important;
+    --yt-spec-text-primary:   #dadada !important;
+    --yt-spec-text-secondary: #b3b9b8 !important;
+    --yt-spec-text-disabled:  #5c6a6e !important;
+    --yt-spec-icon-active-other: #dadada !important;
+    --yt-spec-icon-inactive:     #b3b9b8 !important;
+    --yt-spec-call-to-action:    #8ccf7e !important;
+    --yt-spec-brand-link-text:   #67b0e8 !important;
+    --yt-spec-themed-blue:       #67b0e8 !important;
+    --yt-spec-badge-chip-background: #232a2d !important;
+    --yt-spec-button-chip-background-hover: #2f3b3f !important;
+    --yt-spec-10-percent-layer: #232a2d !important;
+    --yt-spec-15-percent-layer: #2f3b3f !important;
+  }
+
+  html, body {
+    background-color: var(--eb-bg) !important;
+    color: var(--eb-ink) !important;
+  }
+
+  ytd-app {
+    background-color: var(--eb-bg) !important;
+  }
+
+  ytd-masthead,
+  #masthead-container,
+  #masthead {
+    background-color: var(--eb-bg-alt) !important;
+    border-bottom: 1px solid var(--eb-border) !important;
+    backdrop-filter: none !important;
+  }
+
+  /* YouTube logo — Everblush Red for brand heat */
+  #logo-icon svg,
+  ytd-logo svg {
+    fill: var(--eb-red) !important;
+    color: var(--eb-red) !important;
+  }
+
+  /* Search bar — terminal input */
+  #search-form,
+  .ytd-searchbox {
+    background-color: var(--eb-panel) !important;
+    border: 1px solid var(--eb-border) !important;
+  }
+
+  #search-form:focus-within {
+    border-color: var(--eb-green) !important;
+  }
+
+  input#search,
+  .ytd-searchbox input {
+    background-color: var(--eb-panel) !important;
+    color: var(--eb-ink) !important;
+    caret-color: var(--eb-green) !important;
+  }
+
+  input#search::placeholder {
+    color: var(--eb-gray) !important;
+  }
+
+  /* Search button — green accent */
+  #search-icon-legacy,
+  button.ytd-searchbox {
+    background-color: var(--eb-bg-alt) !important;
+    border: 1px solid var(--eb-border) !important;
+    color: var(--eb-green) !important;
+  }
+
+
+  #guide-content,
+  ytd-guide-renderer,
+  #guide-wrapper {
+    background-color: var(--eb-bg-alt) !important;
+    border-right: 1px solid var(--eb-border) !important;
+  }
+
+  ytd-guide-entry-renderer,
+  ytd-mini-guide-entry-renderer {
+    color: var(--eb-gray) !important;
+  }
+
+  ytd-guide-entry-renderer:hover,
+  ytd-mini-guide-entry-renderer:hover {
+    background-color: #1f2629 !important;
+    color: var(--eb-ink) !important;
+  }
+
+  ytd-guide-entry-renderer[active],
+  ytd-mini-guide-entry-renderer[active] {
+    background-color: #1a2a1a !important;
+    color: var(--eb-green) !important;
+    border-left: 3px solid var(--eb-green) !important;
+  }
+
+
+  ytd-rich-grid-renderer,
+  ytd-rich-grid-media,
+  ytd-video-renderer,
+  ytd-compact-video-renderer {
+    background-color: transparent !important;
+  }
+
+  /* Thumbnail containers — sharp border, green on hover */
+  ytd-thumbnail,
+  .ytd-thumbnail {
+    border: 1px solid var(--eb-border) !important;
+    transition: border-color 0.15s ease !important;
+  }
+
+  ytd-thumbnail:hover,
+  .ytd-thumbnail:hover {
+    border-color: var(--eb-green) !important;
+  }
+
+  /* Video titles */
+  #video-title,
+  #video-title-link,
+  .ytd-rich-grid-media #video-title,
+  .ytd-video-renderer #video-title {
+    color: var(--eb-ink) !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+  }
+
+  #video-title:hover,
+  #video-title-link:hover {
+    color: var(--eb-green) !important;
+  }
+
+  /* Channel names, metadata — Everblush Light Gray */
+  ytd-video-meta-block,
+  #channel-name,
+  .ytd-video-meta-block,
+  #metadata-line,
+  .ytd-video-meta-block span {
+    color: var(--eb-gray) !important;
+  }
+
+
+  #movie_player,
+  .html5-video-player {
+    border: 1px solid var(--eb-border) !important;
+  }
+
+  /* Progress bar — Everblush Green */
+  .ytp-play-progress,
+  .ytp-scrubber-button {
+    background-color: var(--eb-green) !important;
+  }
+
+  .ytp-load-progress {
+    background-color: #4a7a45 !important;
+  }
+
+  .ytp-progress-bar-container {
+    border: 1px solid var(--eb-border) !important;
+  }
+
+  /* Player controls — dark Everblush panel */
+  .ytp-chrome-bottom,
+  .ytp-chrome-controls {
+    background: linear-gradient(transparent, rgba(20, 27, 30, 0.92)) !important;
+  }
+
+  /* =============================================
+     8. BUTTONS — Everblush terminal buttons
+     ============================================= */
+  button,
+  .yt-spec-button-shape-next,
+  tp-yt-paper-button,
+  .ytd-topbar-menu-button-renderer button {
+    background-color: var(--eb-bg-alt) !important;
+    border: 1px solid var(--eb-border) !important;
+    color: var(--eb-ink) !important;
+    transition: all 0.15s ease !important;
+  }
+
+  button:hover,
+  .yt-spec-button-shape-next:hover,
+  tp-yt-paper-button:hover {
+    border-color: var(--eb-green) !important;
+    color: var(--eb-green) !important;
+    background-color: #1a2a1a !important;
+  }
+
+  /* Subscribe button — Everblush Green accent */
+  #subscribe-button button,
+  ytd-subscribe-button-renderer button {
+    background-color: transparent !important;
+    border: 1px solid var(--eb-green) !important;
+    color: var(--eb-green) !important;
+  }
+
+  #subscribe-button button:hover {
+    background-color: var(--eb-green) !important;
+    color: var(--eb-bg) !important;
+  }
+
+  /* Like / dislike — Magenta and Red */
+  ytd-toggle-button-renderer[is-icon-button] button[aria-pressed="true"] {
+    color: var(--eb-magenta) !important;
+  }
+
+
+  h1, h2, h3, h4, h5, h6,
+  yt-formatted-string,
+  .yt-formatted-string {
+    color: var(--eb-ink) !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  /* Links — Everblush Blue */
+  a {
+    color: var(--eb-blue) !important;
+    text-decoration: none !important;
+  }
+
+  a:hover {
+    text-decoration: underline !important;
+    text-decoration-style: dotted !important;
+  }
+
+  /* Timestamps — Everblush Cyan */
+  .ytd-thumbnail-overlay-time-status-renderer,
+  span.ytd-thumbnail-overlay-time-status-renderer {
+    background-color: rgba(20, 27, 30, 0.85) !important;
+    color: var(--eb-cyan) !important;
+    border: 1px solid var(--eb-border) !important;
+  }
+
+
+  ::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--eb-bg) !important;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--eb-border) !important;
+    border: 1px solid var(--eb-bg) !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--eb-green) !important;
+  }
+
+
+  tp-yt-paper-tooltip,
+  ytd-menu-popup-renderer,
+  ytd-popup-container,
+  .ytp-popup,
+  .ytp-tooltip {
+    background-color: var(--eb-panel) !important;
+    border: 1px solid var(--eb-border) !important;
+    color: var(--eb-ink) !important;
+  }
+
+  /* Notification badge — Everblush Red */
+  .yt-spec-icon-badge-shape__badge {
+    background-color: var(--eb-red) !important;
+    color: var(--eb-bg) !important;
+  }
+
+  /* Live badge — Everblush Yellow */
+  .yt-badge-shape--live,
+  badge-shape.ytBadgeShapeLive {
+    background-color: var(--eb-yellow) !important;
+    color: var(--eb-bg) !important;
+  }
+
+  /* Membership / sponsor badges — Everblush Magenta */
+  .yt-badge-shape--membership,
+  badge-shape.ytBadgeShapeMembership {
+    background-color: var(--eb-magenta) !important;
+    color: var(--eb-bg) !important;
+  }
+
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(20, 27, 30, 0.04) 0px,
+      rgba(20, 27, 30, 0.04) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 99999;
+    opacity: 0.5;
+  }
