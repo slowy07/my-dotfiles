@@ -1,10 +1,16 @@
 (include "bar/src/modules/dock.yuck")
 
 (defwidget distroIcon []  
-  (button :halign "start" :onclick "PATH=\"$HOME/.config/bspwm/bin:$PATH\" OpenApps --menu" :class "distroIcon"  ''))
+  (button :halign "start" :onclick "PATH=\"$HOME/.config/bspwm/bin:$PATH\" OpenApps --menu" :onrightclick "eww -c ~/.config/bspwm/eww open --toggle dashboard-popup" :class "distroIcon"  ''))
+
+(defwidget barupdates []
+  (box :class "cuteIcon pkgIcon" :space-evenly false
+    (label :text "")
+    (label :class "txt" :text "${pkgupdates}")))
 
 (defwidget left [mon]
-  (box :valign "center" :space-evenly false
+  (box :valign "center" :space-evenly false :spacing 8
     (distroIcon)
+    (barupdates)
     (workspaces_mon :monitor "${mon}")
     (taskbar)))
