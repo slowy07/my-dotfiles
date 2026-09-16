@@ -1,0 +1,164 @@
+.dashboard {
+  background-color: $bg;
+  border: 1px solid $bg-alt;
+  border-radius: 2px;
+  padding: 0.9rem 1.1rem 0.8rem;
+  font-family: "JetBrainsMono Nerd Font Mono";
+}
+
+.dash-time {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: $green;
+}
+
+.dash-date {
+  font-size: 0.9rem;
+  color: $fg;
+}
+
+.dash-uname,
+.dash-hname {
+  color: $fg;
+}
+
+.dash-uname {
+  font-weight: Bold;
+  font-size: 1rem;
+}
+
+.dash-hname {
+  font-size: 0.85rem;
+}
+
+.dash-prompt {
+  color: $magenta;
+}
+
+.dash-section {
+  border-top: 1px solid $bg-alt;
+  padding-top: 0.6rem;
+}
+
+.dash-cal {
+  background-color: $bg-alt;
+  border-radius: 2px;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  color: $fg;
+}
+
+calendar.button {
+  color: $blue;
+  background: transparent;
+  border-radius: 1px;
+}
+
+calendar.button:hover {
+  background-color: $bg;
+}
+
+calendar.header {
+  color: $blue;
+  font-weight: bold;
+}
+
+calendar.highlight {
+  color: $fg;
+}
+
+calendar:selected {
+  color: $green;
+  font-weight: bold;
+}
+
+.hm-cell {
+  min-height: 11px;
+  min-width: 11px;
+  border-radius: 2px;
+  background-color: #1d262c;
+}
+
+.hm-cell.level-1 { background-color: #0e4429; }
+.hm-cell.level-2 { background-color: #006d32; }
+.hm-cell.level-3 { background-color: #26a641; }
+.hm-cell.level-4 { background-color: #39d353; }
+
+.hm-cell.future {
+  background-color: transparent;
+}
+
+.hm-cell.hm-sel,
+.hm-cell.hm-today {
+  box-shadow: inset 0 0 0 1px #39d353;
+  background-color: #26a641;
+}
+
+.hm-detail {
+  color: #8ccf7e;
+  font-size: 0.7rem;
+  min-height: 18px;
+}
+
+.hm-title {
+  color: #e6edf3;
+  font-weight: Bold;
+  letter-spacing: 0.12rem;
+  font-size: 0.95rem;
+}
+
+.hm-head {
+  min-height: 20px;
+}
+
+.hm-range {
+  color: #7d8590;
+  font-size: 0.6rem;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.hm-range.active {
+  color: #8ccf7e;
+  background-color: #1d262c;
+}
+
+.hm-hero {
+  min-height: 34px;
+}
+
+.hm-hero-val {
+  color: #e6edf3;
+  font-size: 1.05rem;
+  font-weight: Bold;
+}
+
+.hm-hero-cap {
+  color: #7d8590;
+  font-size: 0.55rem;
+  letter-spacing: 0.18rem;
+}
+
+.hm-gutter {
+  min-width: 2.2em;
+  color: #7d8590;
+  font-size: 0.6rem;
+}
+
+.hm-mnth {
+  min-width: 11px;
+  color: #7d8590;
+  font-size: 0.6rem;
+}
+
+.hm-streak {
+  color: #57ab5a;
+  font-size: 0.7rem;
+  font-weight: Bold;
+  letter-spacing: 0.06rem;
+}
+
+.hm-legend {
+  color: #7d8590;
+  font-size: 0.6rem;
+}

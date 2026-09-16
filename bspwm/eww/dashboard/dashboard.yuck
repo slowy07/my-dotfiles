@@ -1,0 +1,46 @@
+(defpoll now_time :interval "1s" "date '+%H:%M'")
+(defpoll today :interval "1m" "date '+%A %d %B'")
+(defpoll calendar_day :interval "10h" "date '+%d'")
+(defpoll calendar_month :interval "10h" "date '+%m'")
+(defpoll calendar_year :interval "10h" "date '+%Y'")
+(defpoll heatmap :interval "1h" "python3 $HOME/.config/bspwm/eww/dashboard/heatmap/heatmap.py")
+
+(defwidget dash-heatmap []
+  (literal :content {heatmap}))
+
+(defwidget dash-clock []
+  (box :class "dash-clock" :orientation "v" :space-evenly false
+    (label :class "dash-time" :text now_time)
+    (label :class "dash-date" :text today)))
+
+(defwidget dash-user []
+  (box :class "dash-user" :orientation "v" :space-evenly false
+    (box :space-evenly false :spacing 8
+      (label :class "dash-prompt" :text "󰀄")
+      (label :class "dash-uname" :text "~${username}"))
+    (box :space-evenly false :spacing 8
+      (label :class "dash-prompt" :text "󰒋")
+      (label :class "dash-hname" :text "@${hostname}  󰅐 ${uptime}"))))
+
+(defwidget dashboard []
+  (box :class "dashboard" :orientation "v" :space-evenly false :spacing 8
+    (dash-clock)
+    (dash-user)
+    (box :class "dash-section" :orientation "v"
+      (calendar :class "dash-cal"
+                :day {calendar_day ?: "1"}
+                :month {calendar_month ?: "1"}
+                :year {calendar_year ?: "2025"}))))
+
+(defwindow dashboard-popup
+    :monitor 0
+    :geometry (geometry :x "10px" :y "-70px" :anchor "bottom left")
+    :wm-ignore true
+  (dashboard))
+
+(defwindow heatmap-popup
+    :monitor 0
+    :geometry (geometry :x "0%" :y "-66px" :anchor "bottom center")
+    :wm-ignore true
+  (box :class "dashboard"
+    (dash-heatmap)))
