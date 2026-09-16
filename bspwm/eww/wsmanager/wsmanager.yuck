@@ -1,0 +1,29 @@
+(deflisten ws_panel "$HOME/.config/bspwm/bin/workspace-manager panel-ws")
+(defpoll wsm_panel :interval "1s" "$HOME/.config/bspwm/bin/workspace-manager panel-data")
+
+(defwidget wsmanager-dashboard []
+  (box :class "wmpanel" :orientation "v" :spacing 6 :space-evenly false
+    (box :class "wsm-header" :space-evenly false
+      (label :class "wsm-title" :text "WORKSPACE MANAGER")
+      (label :class "wsm-status" :halign "end" :text "bspwm ● ONLINE"))
+    (box :orientation "h" :spacing 12 :space-evenly false :vexpand true
+      (box :class "wsm-col" :orientation "v" :spacing 4 :space-evenly false
+        (label :class "wsm-h2" :text "WORKSPACES")
+        (literal :content ws_panel))
+      (box :class "wsm-col" :orientation "v" :space-evenly false
+        (literal :content wsm_panel)))
+    (box :class "wsm-footer" :orientation "h" :spacing 8 :space-evenly false
+      (label :class "wsm-key" :text "[C] save-as   [R] rename   [L] load   [D] delete   [Q] close")
+      (button :class "wsm-btn" :halign "end"
+              :onclick "eww -c ~/.config/bspwm/eww close wsmanager-popup"
+              "close"))))
+
+(defwindow wsmanager-popup
+    :monitor 0
+    :geometry (geometry :x "50%"
+                        :y "-70px"
+                        :width "72%"
+                        :anchor "bottom center")
+    :wm-ignore true
+    :focusable true
+  (wsmanager-dashboard))

@@ -51,6 +51,10 @@
           :value-pos "right"
           :onchange "pactl set-sink-volume @DEFAULT_SINK@ {}%"))))
 
+(defwidget workspaceBtn []
+  (button :onclick "bar/scripts/wsmanager_toggle.sh"
+          :class "wsmbar-btn" :tooltip "Workspace manager" "󰆍"))
+
 (defwidget right []
   (box :valign "center" :halign "end" :space-evenly false :class "right modal"
     :spacing 9
@@ -60,5 +64,6 @@
     (barcpu)
     (volume_slider_widget)
     (barwifi)
+    (workspaceBtn)
     (powerBtn)
     (systray  :icon-size 24 :spacing 3  :prepend-new true :orientation "h"  :class "tray")))

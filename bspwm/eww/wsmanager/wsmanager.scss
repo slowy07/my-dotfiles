@@ -1,0 +1,175 @@
+$wsm-bg2: lighten($bg, 4%);
+$wsm-bg3: lighten($bg, 8%);
+$wsm-bg4: lighten($bg, 16%);
+$wsm-border: mix($bg, $fg, 72%);
+
+.wmpanel {
+  background: $bg;
+  border: 1px solid $wsm-border;
+  border-radius: 0.4rem;
+  padding: 0.9rem 1.1rem;
+  font-family: "JetbrainsMono Nerd Font Mono";
+  font-size: 1.05rem;
+  color: $fg;
+  background-color: $bg;
+}
+
+.wsm-header {
+  border-bottom: 1px solid $wsm-border;
+  padding-bottom: 0.4rem;
+}
+
+.wsm-title {
+  font-family: "JetbrainsMono Nerd Font Mono";
+  font-size: 1.35rem;
+  font-weight: bold;
+  color: $green;
+  letter-spacing: 0.15rem;
+}
+
+.wsm-status {
+  color: $green;
+  font-size: 1rem;
+}
+
+.wsm-h2 {
+  color: $cyan;
+  font-weight: bold;
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+}
+
+.wsm-col {
+  border: 1px solid $wsm-bg3;
+  border-radius: 0.3rem;
+  padding: 0.5rem 0.7rem;
+}
+
+.wsd-list {
+  padding: 0.2rem 0;
+}
+
+.wsd-entry {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.wsd-layout {
+  color: $wsm-bg4;
+  font-size: 0.9rem;
+}
+
+.wsd-focus {
+  color: $green;
+  background: mix($bg, $green, 88%);
+}
+
+.wsd-occ {
+  color: $blue;
+}
+
+.wsd-empty {
+  color: $wsm-bg4;
+}
+
+.wsd-entry:hover {
+  background: $wsm-bg3;
+}
+
+.sess-entry {
+  color: $fg;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.sess-active {
+  color: $green;
+  background: mix($bg, $green, 88%);
+}
+
+.sess-entry:hover {
+  background: $wsm-bg3;
+}
+
+.preset-entry {
+  color: $magenta;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.preset-entry:hover {
+  background: $wsm-bg3;
+}
+
+.wsm-detail {
+  color: $cyan;
+  font-size: 0.95rem;
+}
+
+.wsm-empty {
+  color: $wsm-bg4;
+  font-size: 0.9rem;
+}
+
+.wsm-hint {
+  color: $wsm-bg4;
+  font-size: 0.9rem;
+}
+
+.wsm-actions button {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid $wsm-bg3;
+  background: $wsm-bg2;
+  color: $fg;
+}
+
+.wsm-actions button:hover {
+  background: $wsm-bg3;
+  color: $green;
+}
+
+.wsm-msg {
+  color: $green;
+  font-size: 0.95rem;
+}
+
+.wsm-mode {
+  color: $yellow;
+  font-size: 0.85rem;
+}
+
+.wsm-footer {
+  border-top: 1px solid $wsm-border;
+  padding-top: 0.5rem;
+}
+
+.wsm-input {
+  background: $wsm-bg2;
+  border: 1px solid $wsm-bg3;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  font-family: "JetbrainsMono Nerd Font Mono";
+  font-size: 1rem;
+  color: $fg;
+  min-width: 14rem;
+}
+
+.wsm-key {
+  color: $wsm-bg4;
+  font-size: 0.85rem;
+}
+
+.wsm-btn {
+  padding: 0.15rem 0.6rem;
+  border-radius: 0.25rem;
+  border: 1px solid $wsm-bg3;
+  background: $wsm-bg2;
+  color: $red;
+  font-size: 0.95rem;
+}
+
+.wsm-btn:hover {
+  background: $wsm-bg3;
+  color: $fg;
+}

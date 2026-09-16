@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "name": "Minimal",
+  "applications": [
+    {"workspace": "1", "command": "kitty", "class": "Kitty"}
+  ]
+}

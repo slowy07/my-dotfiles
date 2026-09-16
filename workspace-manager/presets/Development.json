@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "Development",
+  "applications": [
+    {"workspace": "1", "command": "kitty", "class": "Kitty"},
+    {"workspace": "2", "command": "sh -c 'code'", "class": "Code"},
+    {"workspace": "3", "command": "ghostty", "class": "com.mitchellh.ghostty"}
+  ]
+}

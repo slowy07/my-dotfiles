@@ -254,6 +254,21 @@ $gray: lighten($bg, 24%);
   }
 }
 
+.wsmbar-btn {
+  background: $bg-2;
+  color: $archicon;
+  min-width: 2.2rem;
+  min-height: 1.25rem;
+  padding: 0;
+  border-radius: 30%;
+  font-size: 1rem;
+}
+
+.wsmbar-btn:hover {
+  background: $blue;
+  color: $bg;
+}
+
 .volume-slider {
   background-color: $bg-2;
   border-radius: 1rem;

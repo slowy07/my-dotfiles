@@ -1,0 +1,774 @@
+#!/usr/bin/env python3
+"""workspace-manager: capture, restore and preset bspwm workspace sessions.
+
+Backend for the eww workspace dashboard. Python stdlib only; talks to bspwm
+via `bspc`. Sessions and presets are JSON files under
+$XDG_CONFIG_HOME/workspace-manager/ (default ~/.config/workspace-manager/).
+"""
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+from datetime import datetime
+
+SCHEMA = 1
+NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+WINDOW_STATES = {"tiled", "pseudo_tiled", "floating", "fullscreen"}
+BASE = os.environ.get("WM_BASE") or os.path.join(
+    os.environ.get("XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")),
+    "workspace-manager",
+)
+SESSIONS_DIR = os.path.join(BASE, "sessions")
+PRESETS_DIR = os.path.join(BASE, "presets")
+STATE_FILE = os.path.join(BASE, "state.json")
+RESTORE_LOG = os.path.join(BASE, "restore.log")
+
+
+def sh(*args, **kw):
+    subprocess.run(args, check=True, capture_output=True, **kw)
+
+
+def sh_out(*args):
+    r = subprocess.run(args, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError("bspc %s: %s" % (" ".join(args[1:]), r.stderr.strip()))
+    return r.stdout.strip()
+
+
+def sh_opt(*args):
+    r = subprocess.run(args, capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def die(msg, code=1):
+    print("error: %s" % msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def validate_name(name):
+    if not NAME_RE.match(name):
+        die("invalid name '%s' (use [A-Za-z0-9._-], max 64 chars)" % name)
+
+
+def session_path(name):
+    validate_name(name)
+    return os.path.join(SESSIONS_DIR, name + ".json")
+
+
+def preset_path(name):
+    validate_name(name)
+    return os.path.join(PRESETS_DIR, name + ".json")
+
+
+def atomic_write(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
+
+
+def load_json(path):
+    with open(path) as f:
+        return json.load(f)
+
+
+def read_state():
+    try:
+        st = load_json(STATE_FILE)
+        st.setdefault("selected", None)
+        st.setdefault("message", "READY")
+        st.setdefault("confirm", False)
+        st.setdefault("input_mode", "capture")
+        return st
+    except Exception:
+        return {"selected": None, "message": "READY", "confirm": False, "input_mode": "capture"}
+
+
+def write_state(st):
+    atomic_write(STATE_FILE, st)
+
+
+def desktop_index():
+    ids = sh_out("bspc", "query", "-D").split()
+    names = sh_out("bspc", "query", "-D", "--names").split()
+    mon_ids = sh_out("bspc", "query", "-M").split()
+    mon_names = sh_out("bspc", "query", "-M", "--names").split()
+    dmon = {}
+    for mi in mon_ids:
+        for d in sh_out("bspc", "query", "-D", "-m", mi).split():
+            dmon[d] = ""
+    for mi, mn in zip(mon_ids, mon_names):
+        for d in sh_out("bspc", "query", "-D", "-m", mi).split():
+            dmon[d] = mn
+    return [(d, n, dmon.get(d, "")) for d, n in zip(ids, names)]
+
+
+def launch_command(winid):
+    try:
+        out = subprocess.run(
+            ["xprop", "-id", str(winid), "_NET_WM_PID"], capture_output=True, text=True
+        ).stdout
+        pid = out.split("=")[-1].strip()
+        if not pid.isdigit():
+            return ""
+        with open("/proc/%s/cmdline" % pid, "rb") as f:
+            argv = [a.decode(errors="replace") for a in f.read().split(b"\0") if a]
+        if not argv:
+            return ""
+        return shlex.join(argv)
+    except Exception:
+        return ""
+
+
+def client_entry(node, winid):
+    cl = node.get("client") or {}
+    st = cl.get("state") or "tiled"
+    entry = {
+        "class": cl.get("className") or "",
+        "instance": cl.get("instanceName") or "",
+        "launch": launch_command(winid),
+        "state": st,
+        "sticky": bool(node.get("sticky")),
+        "private": bool(node.get("private")),
+        "locked": bool(node.get("locked")),
+        "marked": bool(node.get("marked")),
+    }
+    rect = node.get("rectangle") or {}
+    if st == "floating" and all(k in rect for k in ("x", "y", "width", "height")):
+        entry["geometry"] = "%(width)sx%(height)s+%(x)s+%(y)s" % rect
+    return entry
+
+
+def capture_session(name):
+    validate_name(name)
+    session = {
+        "version": SCHEMA,
+        "name": name,
+        "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "desktops": [],
+    }
+    for did, dname, mon in desktop_index():
+        tree = json.loads(sh_out("bspc", "query", "-T", "-d", did))
+        apps = []
+
+        def walk(n):
+            if not n:
+                return
+            if n.get("client"):
+                apps.append(client_entry(n, n["id"]))
+            walk(n.get("firstChild"))
+            walk(n.get("secondChild"))
+
+        walk(tree.get("root"))
+        session["desktops"].append(
+            {
+                "name": dname,
+                "monitor": mon,
+                "layout": tree.get("layout", "tiled"),
+                "applications": apps,
+            }
+        )
+    path = session_path(name)
+    if os.path.exists(path) and "--force" not in sys.argv:
+        die("session '%s' already exists (use --force to overwrite)" % name)
+    atomic_write(path, session)
+    return session
+
+
+def list_sessions():
+    os.makedirs(SESSIONS_DIR, exist_ok=True)
+    return sorted(f[:-5] for f in os.listdir(SESSIONS_DIR) if f.endswith(".json"))
+
+
+def list_presets():
+    os.makedirs(PRESETS_DIR, exist_ok=True)
+    return sorted(f[:-5] for f in os.listdir(PRESETS_DIR) if f.endswith(".json"))
+
+
+def try_load_session(name):
+    path = session_path(name)
+    if not os.path.exists(path):
+        return None
+    try:
+        return load_json(path)
+    except Exception:
+        return None
+
+
+def load_session(name):
+    s = try_load_session(name)
+    if not os.path.exists(session_path(name)):
+        die("session '%s' not found" % name)
+    if s is None:
+        die("session '%s' is corrupted" % name)
+    return s
+
+
+def load_preset(name):
+    path = preset_path(name)
+    if not os.path.exists(path):
+        die("preset '%s' not found" % name)
+    try:
+        return load_json(path)
+    except Exception:
+        die("preset '%s' is corrupted" % name)
+
+
+def workspace_status():
+    focused = set(sh_out("bspc", "query", "-D", "-d", ".active").split())
+    occupied = set(sh_out("bspc", "query", "-D", "-d", ".occupied").split())
+    ws = []
+    for did, name, mon in desktop_index():
+        layout = "tiled"
+        try:
+            layout = json.loads(sh_out("bspc", "query", "-T", "-d", did)).get("layout", "tiled")
+        except Exception:
+            pass
+        ws.append(
+            {
+                "name": name,
+                "monitor": mon,
+                "focused": did in focused,
+                "occupied": did in occupied,
+                "layout": layout,
+            }
+        )
+    return ws
+
+
+def window_inventory():
+    inv = []
+    for did in sh_out("bspc", "query", "-D").split():
+        for nid in sh_opt("bspc", "query", "-N", "-d", did, "-n", ".window").split():
+            try:
+                node = json.loads(sh_out("bspc", "query", "-T", "-n", nid))
+            except Exception:
+                continue
+            c = node.get("client") or {}
+            if not c.get("className"):
+                continue
+            inv.append(
+                {
+                    "id": nid,
+                    "class": c.get("className"),
+                    "instance": c.get("instanceName") or "",
+                }
+            )
+    return inv
+
+
+def matches(app, win):
+    wc, wi = app.get("class", ""), app.get("instance", "")
+    if wc and win["class"].lower() == wc.lower():
+        return True
+    if wi and win["instance"].lower() == wi.lower():
+        return True
+    return False
+
+
+def find_unclaimed(app, claimed, inventory=None):
+    for w in inventory or window_inventory():
+        if w["id"] in claimed:
+            continue
+        if matches(app, w):
+            return w
+    return None
+
+
+def wait_for_window(app, claimed, timeout=25.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        w = find_unclaimed(app, claimed)
+        if w:
+            return w
+        time.sleep(0.5)
+    return None
+
+
+def ensure_desktop(name, monitor_hint=""):
+    if name in sh_out("bspc", "query", "-D", "--names").split():
+        return
+    if monitor_hint in sh_out("bspc", "query", "-M", "--names").split():
+        sh("bspc", "monitor", monitor_hint, "-a", name)
+    else:
+        sh("bspc", "monitor", "-f", "-a", name)
+
+
+def apply_window_state(node_id, app, desktop):
+    sh_opt("bspc", "node", node_id, "-d", desktop)
+    st = app.get("state")
+    if st in WINDOW_STATES:
+        sh_opt("bspc", "node", node_id, "-t", st)
+    for flag in ("sticky", "private", "locked", "marked"):
+        if app.get(flag):
+            sh_opt("bspc", "node", node_id, "-g", flag + "=on")
+    if app.get("geometry"):
+        sh_opt("bspc", "node", node_id, "-g", app["geometry"])
+
+
+rlog_handle = None
+
+
+def prog(msg, warn=False):
+    line = ("[!] " if warn else "[+] ") + msg
+    print(line, flush=True)
+    global rlog_handle
+    if rlog_handle is None:
+        os.makedirs(BASE, exist_ok=True)
+        rlog_handle = open(RESTORE_LOG, "a")
+    rlog_handle.write(datetime.now().isoformat(timespec="seconds") + " " + line + "\n")
+    rlog_handle.flush()
+
+
+def restore_session(name, dry=False):
+    if dry:
+        return
+    session = load_session(name)
+    st = read_state()
+    st["message"] = "RESTORING %s" % name
+    write_state(st)
+    prog("Loading session: %s" % name)
+    claims = set()
+    warnings = 0
+    for d in session.get("desktops", []):
+        dname = d.get("name", "?")
+        try:
+            ensure_desktop(dname, d.get("monitor", ""))
+        except Exception:
+            warnings += 1
+            prog("Desktop %s not available, skipping" % dname, warn=True)
+            continue
+        try:
+            bspc_layout = d.get("layout", "tiled")
+            current = json.loads(sh_out("bspc", "query", "-T", "-d", dname)).get("layout", "")
+            if current != bspc_layout:
+                sh_opt("bspc", "desktop", dname, "-l", bspc_layout)
+            prog("Desktop %s ready (%s)" % (dname, bspc_layout))
+        except Exception:
+            warnings += 1
+            prog("Could not set layout on %s" % dname, warn=True)
+        for app in d.get("applications", []):
+            cls = app.get("class") or app.get("instance") or "?"
+            win = find_unclaimed(app, claims)
+            if win:
+                apply_window_state(win["id"], app, dname)
+                claims.add(win["id"])
+                prog("Reused existing %s -> %s" % (cls, dname))
+                continue
+            lcmd = app.get("launch") or ""
+            if not lcmd:
+                warnings += 1
+                prog("No launch command for %s, skipped" % cls, warn=True)
+                continue
+            prog("Starting %s" % cls)
+            try:
+                subprocess.Popen(
+                    ["sh", "-c", lcmd],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception:
+                warnings += 1
+                prog("%s failed to launch" % cls, warn=True)
+                continue
+            win = wait_for_window(app, claims)
+            if not win:
+                warnings += 1
+                prog("%s window never appeared (timeout)" % cls, warn=True)
+                continue
+            apply_window_state(win["id"], app, dname)
+            claims.add(win["id"])
+            prog("%s detected, moved to %s" % (cls, dname))
+    st = read_state()
+    st["message"] = "%s restored%s" % (name, " with %d warnings" % warnings if warnings else "")
+    write_state(st)
+    prog("Restore completed with %d warning%s" % (warnings, "s" if warnings else ""))
+
+
+def launch_preset(name):
+    preset = load_preset(name)
+    prog("Launching preset: %s" % name)
+    claims = set()
+    warnings = 0
+    for app in preset.get("applications", []):
+        desk = str(app.get("workspace", "1"))
+        try:
+            ensure_desktop(desk)
+        except Exception:
+            warnings += 1
+            prog("Desktop %s not available" % desk, warn=True)
+            continue
+        cls = app.get("class") or app.get("command") or "?"
+        win = find_unclaimed(app, claims)
+        if win:
+            sh_opt("bspc", "node", win["id"], "-d", desk)
+            claims.add(win["id"])
+            prog("Reused existing %s -> %s" % (cls, desk))
+            continue
+        cmd = app.get("command")
+        if not cmd:
+            warnings += 1
+            prog("No command for %s, skipped" % cls, warn=True)
+            continue
+        subprocess.Popen(["sh", "-c", cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        win = wait_for_window(app, claims)
+        if not win:
+            warnings += 1
+            prog("%s failed to appear (timeout)" % cls, warn=True)
+            continue
+        sh_opt("bspc", "node", win["id"], "-d", desk)
+        claims.add(win["id"])
+        prog("Launched %s -> %s" % (cls, desk))
+    prog("Preset finished with %d warning%s" % (warnings, "s" if warnings else ""))
+    return warnings
+
+
+# ---- yuck rendering (eww consumes this) ----
+
+
+def emit_ws_panel():
+    parts = []
+    for w in workspace_status():
+        if w["focused"]:
+            mark, cls = "\u25cf", "wsd-focus"
+        elif w["occupied"]:
+            mark, cls = "\u25cb", "wsd-occ"
+        else:
+            mark, cls = "\u00b7", "wsd-empty"
+        name = w["name"]
+        parts.append(
+            '(button :class "wsd-entry %s" :onclick "bspc desktop -f %s" '
+            "(box :spacing 8 (label :text \"%s\") (label :text \"%s\")"
+            '(label :class "wsd-layout" :text "%s")))'
+            % (cls, shlex.quote(name), mark, name, w["layout"])
+        )
+    print('(box :class "wsd-list" :orientation "v" :spacing 2 %s)' % "".join(parts), flush=True)
+
+
+def emit_sessions(st, sel):
+    parts = []
+    for name in list_sessions():
+        cls = "sess-entry" + (" sess-active" if name == sel else "")
+        arrow = "\u2192" if name == sel else "\u00b7"
+        parts.append(
+            '(button :class "%s" :onclick "workspace-manager select %s" '
+            '(label :text "%s %s"))'
+            % (cls, shlex.quote(name), arrow, name)
+        )
+    if not parts:
+        parts.append('(label :class "wsm-empty" :text "\u00b7 (no sessions saved)")')
+    return "".join(parts)
+
+
+def emit_presets():
+    parts = []
+    for name in list_presets():
+        parts.append(
+            '(button :class "preset-entry" :onclick "workspace-manager preset launch %s" '
+            '(label :text "\u00b7 %s"))' % (shlex.quote(name), name)
+        )
+    if not parts:
+        parts.append('(label :class "wsm-empty" :text "\u00b7 (no presets)")')
+    return "".join(parts)
+
+
+def yuck_text(s):
+    return s.replace("\\", "\\\\").replace('"', '\\"').replace("&", "&amp;").replace("<", "&lt;")
+
+
+def emit_details(sel):
+    if not sel:
+        return '(label :class "wsm-detail" :text "(select a session)")'
+    s = try_load_session(sel)
+    if s is None:
+        return '(label :class "wsm-detail" :markup true :text "&lt;session missing or corrupted&gt;")'
+    desks = s.get("desktops", [])
+    apps = sum(len(d.get("applications", [])) for d in desks)
+    created = (s.get("created_at") or "?")[:10]
+    txt = yuck_text("Selected: %s | Workspaces: %d | Apps: %d | Created: %s" % (sel, len(desks), apps, created))
+    return '(label :class "wsm-detail" :markup true :text "%s")' % txt
+
+
+def emit_actions(sel):
+    parts = ['(button :class "wsm-btn" :onclick "workspace-manager prompt-capture" "[C] Save-as")']
+    if not sel:
+        parts.append('(label :class "wsm-hint" :text "[ select a session for more actions ]")')
+        return "".join(parts)
+    parts.append('(button :class "wsm-btn" :onclick "workspace-manager prompt-rename" "[R] Rename")')
+    parts.append('(button :class "wsm-btn" :onclick "workspace-manager restore %s" "[L] Load")' % shlex.quote(sel))
+    parts.append('(button :class "wsm-btn" :onclick "workspace-manager delete %s" "[D] Delete")' % shlex.quote(sel))
+    return "".join(parts)
+
+
+def emit_panel_data():
+    st = read_state()
+    sel = st["selected"]
+    print(
+        '(box :class "wsm-data" :orientation "v" :spacing 6 :space-evenly false '
+        '(label :class "wsm-h2" :text "SAVED") (box :orientation "v" :spacing 2 %s)'
+        '(label :class "wsm-h2" :text "PRESETS") (box :orientation "v" :spacing 2 %s)'
+        '(label :class "wsm-h2" :text "SELECTED") %s'
+        '(box :class "wsm-actions" :orientation "h" :spacing 6 %s)'
+        '(label :class "wsm-msg" :text "%s") %s)'
+        % (
+            emit_sessions(st, sel),
+            emit_presets(),
+            emit_details(sel),
+            emit_actions(sel),
+            yuck_text(st["message"]),
+            '(label :class "wsm-hint" :text "Delete confirm: press [D] again")' if st["confirm"] else "",
+        ),
+        flush=True,
+    )
+
+
+# ---- CLI dispatch ----
+
+
+def cmd_status():
+    print(json.dumps({"workspaces": workspace_status()}, indent=2))
+
+
+def cmd_capture(name):
+    s = capture_session(name)
+    st = read_state()
+    st["selected"] = name
+    st["message"] = "captured: %s (%d desktops)" % (name, len(s["desktops"]))
+    st["confirm"] = False
+    write_state(st)
+    print("captured %s" % name)
+
+
+def cmd_restore(name):
+    if name == "selected":
+        name = read_state()["selected"] or die("no session selected")
+    restore_session(name)
+    return 0
+
+
+def cmd_select(name):
+    if not os.path.exists(session_path(name)):
+        die("session '%s' not found" % name)
+    st = read_state()
+    st["selected"] = name
+    st["confirm"] = False
+    write_state(st)
+    print("selected %s" % name)
+
+
+def cmd_delete(name):
+    st = read_state()
+    path = session_path(name)
+    if not os.path.exists(path):
+        die("session '%s' not found" % name)
+    if not st.get("confirm"):
+        st["confirm"] = True
+        st["message"] = "delete %s? press [D] again" % name
+        write_state(st)
+        print("confirming delete of %s" % name)
+        return 0
+    os.remove(path)
+    if st.get("selected") == name:
+        st["selected"] = None
+    st["confirm"] = False
+    st["message"] = "deleted: %s" % name
+    write_state(st)
+    print("deleted %s" % name)
+
+
+def cmd_rename(old, new):
+    validate_name(new)
+    old_path = session_path(old)
+    if not os.path.exists(old_path):
+        die("session '%s' not found" % old)
+    new_path = session_path(new)
+    if os.path.exists(new_path):
+        die("session '%s' already exists" % new)
+    s = load_session(old)
+    s["name"] = new
+    atomic_write(new_path, s)
+    os.remove(old_path)
+    st = read_state()
+    if st.get("selected") == old:
+        st["selected"] = new
+    st["message"] = "renamed %s -> %s" % (old, new)
+    st["confirm"] = False
+    write_state(st)
+    print("renamed %s to %s" % (old, new))
+
+
+def cmd_toggle_mode(mode):
+    st = read_state()
+    st["input_mode"] = mode
+    st["message"] = "input mode: %s (type name + Enter)" % mode
+    write_state(st)
+    print(mode)
+
+
+def prompt_name(prompt):
+    r = subprocess.run(
+        ["rofi", "-dmenu", "-p", prompt],
+        capture_output=True,
+        text=True,
+    )
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def cmd_prompt_capture():
+    name = prompt_name("Save session as:")
+    if name:
+        cmd_capture(name)
+
+
+def cmd_prompt_rename():
+    sel = read_state()["selected"]
+    if not sel:
+        die("no session selected")
+    name = prompt_name("Rename '%s' to:" % sel)
+    if name:
+        cmd_rename(sel, name)
+
+
+def cmd_input_submit(value):
+    st = read_state()
+    value = value.strip()
+    if not value:
+        return 0
+    if st["input_mode"] == "rename":
+        sel = st["selected"] or die("no session selected")
+        cmd_rename(sel, value)
+    else:
+        cmd_capture(value)
+    return 0
+
+
+def cmd_panel_ws_loop():
+    emit_ws_panel()
+    try:
+        p = subprocess.Popen(
+            ["bspc", "subscribe", "desktop", "node_transfer", "node_state",
+             "desktop_focus", "desktop_layout", "node_add", "node_remove", "monitor"],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        for _ in p.stdout:
+            emit_ws_panel()
+    except KeyboardInterrupt:
+        pass
+
+
+def cmd_watch():
+    cmd_panel_ws_loop()
+
+
+def selftest():
+    import tempfile
+
+    tests = []
+
+    def ok(cond, label):
+        tests.append((cond, label))
+
+    ok(bool(NAME_RE.match("coding2.main")), "valid name")
+    ok(not NAME_RE.match("a/b"), "slash rejected")
+    ok(not NAME_RE.match("..evil"), "dotdot rejected")
+    ok(not NAME_RE.match("-x"), "leading dash rejected")
+    with tempfile.TemporaryDirectory() as td:
+        p = os.path.join(td, "s.json")
+        atomic_write(p, {"version": 1, "name": "x", "desktops": []})
+        ok(load_json(p)["name"] == "x", "atomic write roundtrip")
+        ok(not os.path.exists(p + ".tmp"), "tmp cleaned up")
+    inv = [
+        {"id": "1", "class": "Alacritty", "instance": "alacritty"},
+        {"id": "2", "class": "Code", "instance": "code"},
+        {"id": "3", "class": "Alacritty", "instance": "alacritty"},
+    ]
+    ok(find_unclaimed({"class": "alacritty", "instance": ""}, set(), inv)["id"] == "1", "class match case-insensitive")
+    ok(find_unclaimed({"class": "Alacritty"}, {"1"}, inv)["id"] == "3", "skip claimed")
+    ok(find_unclaimed({"class": "Firefox"}, set(), inv) is None, "missing class -> none")
+    failed = [l for c, l in tests if not c]
+    if failed:
+        die("selftest failures: %s" % ", ".join(failed))
+    print("selftest ok: %d checks" % len(tests))
+
+
+def main():
+    argv = sys.argv[1:]
+    if not argv:
+        die("usage: workspace-manager <status|capture|list|inspect|delete|rename|restore|select|preset|panel-ws|panel-data|watch|selftest>", 2)
+    cmd, *rest = argv
+    if cmd == "status":
+        cmd_status()
+    elif cmd == "capture":
+        if not rest:
+            die("capture requires a session name", 2)
+        cmd_capture(rest[0])
+    elif cmd == "list":
+        for n in list_sessions():
+            print(n)
+    elif cmd == "inspect":
+        if not rest:
+            die("inspect requires a session name", 2)
+        print(json.dumps(load_session(rest[0]), indent=2))
+    elif cmd == "delete":
+        if not rest:
+            die("delete requires a session name", 2)
+        cmd_delete(rest[0])
+    elif cmd == "rename":
+        if len(rest) < 2:
+            die("rename requires OLD NEW", 2)
+        cmd_rename(rest[0], rest[1])
+    elif cmd == "restore":
+        if not rest:
+            die("restore requires a session name", 2)
+        cmd_restore(rest[0])
+    elif cmd == "select":
+        if not rest:
+            die("select requires a session name", 2)
+        cmd_select(rest[0])
+    elif cmd == "toggle-mode":
+        if not rest:
+            die("toggle-mode requires capture|rename", 2)
+        cmd_toggle_mode(rest[0])
+    elif cmd == "prompt-capture":
+        cmd_prompt_capture()
+    elif cmd == "prompt-rename":
+        cmd_prompt_rename()
+    elif cmd == "input-submit":
+        cmd_input_submit(rest[0] if rest else "")
+    elif cmd == "preset":
+        if not rest:
+            die("preset requires list|inspect|launch", 2)
+        sub, *subargs = rest
+        if sub == "list":
+            for n in list_presets():
+                print(n)
+        elif sub == "inspect":
+            if not subargs:
+                die("preset inspect requires a name", 2)
+            print(json.dumps(load_preset(subargs[0]), indent=2))
+        elif sub == "launch":
+            if not subargs:
+                die("preset launch requires a name", 2)
+            restore_session_dummy = None
+            launch_preset(subargs[0])
+        else:
+            die("unknown preset subcommand '%s'" % sub, 2)
+    elif cmd == "panel-ws":
+        cmd_panel_ws_loop()
+    elif cmd == "panel-data":
+        emit_panel_data()
+    elif cmd == "selftest":
+        selftest()
+    else:
+        die("unknown command '%s'" % cmd, 2)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
