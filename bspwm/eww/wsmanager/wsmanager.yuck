@@ -1,3 +1,5 @@
+; eww x% is monitor-centered plus a root-width fraction (0% = centered in the
+; left-most output). On this dual-1920x1080 setup 0% pins it inside HDMI-A-0.
 (deflisten ws_panel "$HOME/.config/bspwm/bin/workspace-manager panel-ws")
 (defpoll wsm_panel :interval "1s" "$HOME/.config/bspwm/bin/workspace-manager panel-data")
 
@@ -19,10 +21,10 @@
               "close"))))
 
 (defwindow wsmanager-popup
-    :monitor 0
-    :geometry (geometry :x "50%"
+    :monitor "HDMI-A-0"
+    :geometry (geometry :x "0%"
                         :y "-70px"
-                        :width "72%"
+                        :width "50%"
                         :anchor "bottom center")
     :wm-ignore true
   (wsmanager-dashboard))
