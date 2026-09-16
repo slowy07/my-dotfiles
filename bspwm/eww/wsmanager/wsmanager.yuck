@@ -25,5 +25,4 @@
                         :width "72%"
                         :anchor "bottom center")
     :wm-ignore true
-    :focusable true
   (wsmanager-dashboard))

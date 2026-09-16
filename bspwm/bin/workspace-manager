@@ -83,10 +83,9 @@ def read_state():
         st.setdefault("selected", None)
         st.setdefault("message", "READY")
         st.setdefault("confirm", False)
-        st.setdefault("input_mode", "capture")
         return st
     except Exception:
-        return {"selected": None, "message": "READY", "confirm": False, "input_mode": "capture"}
+        return {"selected": None, "message": "READY", "confirm": False}
 
 
 def write_state(st):
@@ -602,14 +601,6 @@ def cmd_rename(old, new):
     print("renamed %s to %s" % (old, new))
 
 
-def cmd_toggle_mode(mode):
-    st = read_state()
-    st["input_mode"] = mode
-    st["message"] = "input mode: %s (type name + Enter)" % mode
-    write_state(st)
-    print(mode)
-
-
 def prompt_name(prompt):
     r = subprocess.run(
         ["rofi", "-dmenu", "-p", prompt],
@@ -634,19 +625,6 @@ def cmd_prompt_rename():
         cmd_rename(sel, name)
 
 
-def cmd_input_submit(value):
-    st = read_state()
-    value = value.strip()
-    if not value:
-        return 0
-    if st["input_mode"] == "rename":
-        sel = st["selected"] or die("no session selected")
-        cmd_rename(sel, value)
-    else:
-        cmd_capture(value)
-    return 0
-
-
 def cmd_panel_ws_loop():
     emit_ws_panel()
     try:
@@ -660,10 +638,6 @@ def cmd_panel_ws_loop():
             emit_ws_panel()
     except KeyboardInterrupt:
         pass
-
-
-def cmd_watch():
-    cmd_panel_ws_loop()
 
 
 def selftest():
@@ -700,7 +674,7 @@ def selftest():
 def main():
     argv = sys.argv[1:]
     if not argv:
-        die("usage: workspace-manager <status|capture|list|inspect|delete|rename|restore|select|preset|panel-ws|panel-data|watch|selftest>", 2)
+        die("usage: workspace-manager <status|capture|list|inspect|delete|rename|restore|select|preset|prompt-capture|prompt-rename|panel-ws|panel-data|selftest>", 2)
     cmd, *rest = argv
     if cmd == "status":
         cmd_status()
@@ -731,16 +705,10 @@ def main():
         if not rest:
             die("select requires a session name", 2)
         cmd_select(rest[0])
-    elif cmd == "toggle-mode":
-        if not rest:
-            die("toggle-mode requires capture|rename", 2)
-        cmd_toggle_mode(rest[0])
     elif cmd == "prompt-capture":
         cmd_prompt_capture()
     elif cmd == "prompt-rename":
         cmd_prompt_rename()
-    elif cmd == "input-submit":
-        cmd_input_submit(rest[0] if rest else "")
     elif cmd == "preset":
         if not rest:
             die("preset requires list|inspect|launch", 2)
@@ -755,7 +723,6 @@ def main():
         elif sub == "launch":
             if not subargs:
                 die("preset launch requires a name", 2)
-            restore_session_dummy = None
             launch_preset(subargs[0])
         else:
             die("unknown preset subcommand '%s'" % sub, 2)
