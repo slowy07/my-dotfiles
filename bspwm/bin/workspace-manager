@@ -502,12 +502,58 @@ def emit_details(sel):
     return '(label :class "wsm-detail" :markup true :text "%s")' % txt
 
 
-def emit_actions(sel):
-    # eww SIGKILLs the onclick child's process group ~1s after the click, so any
-    # command that can outlive that (rofi prompt, restore) runs detached via setsid.
-    def detach(cmd):
-        return "sh -c 'setsid -f %s'" % cmd
+# eww SIGKILLs the onclick child's process group ~1s after the click, so any
+# command that can outlive that (rofi prompt, restore) runs detached via setsid.
+def detach(cmd):
+    return "sh -c 'setsid -f %s'" % cmd
 
+
+def cpu_mode():
+    try:
+        with open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor") as fh:
+            return fh.read().strip() or "?"
+    except OSError:
+        return "?"
+
+
+def cmd_device_cpu(mode):
+    st = read_state()
+    if mode not in ("performance", "powersave"):
+        st["message"] = "cpu mode: unknown '%s'" % mode
+        write_state(st)
+        return
+    try:
+        r = subprocess.run(
+            ["sudo", "-n", "cpupower", "frequency-set", "-g", mode],
+            capture_output=True, text=True, timeout=5,
+        )
+        st["message"] = (
+            "cpu mode set: %s" % mode
+            if r.returncode == 0
+            else "cpu mode failed: %s" % ((r.stderr or r.stdout or "error").strip())
+        )
+    except Exception as e:
+        st["message"] = "cpu mode failed: %s" % e
+    write_state(st)
+
+
+def emit_device():
+    gov = cpu_mode()
+    return (
+        '(label :class "wsm-h2" :text "DEVICE")'
+        '(box :orientation "h" :spacing 6 :halign "fill" '
+        '(button :class "wsm-btn" :halign "fill" :onclick "%s" "PERFORMANCE")'
+        '(button :class "wsm-btn" :halign "fill" :onclick "%s" "POWER-SAVING"))'
+        '(label :class "wsm-mode" :text "cpu: %s")'
+        % (
+            detach("workspace-manager device cpu performance"),
+            detach("workspace-manager device cpu powersave"),
+            gov,
+        )
+    )
+
+
+def emit_actions(sel):
     parts = ['(button :class "wsm-btn" :halign "fill" :onclick "%s" "[C] Save session")' % detach("workspace-manager prompt-capture")]
     if not sel:
         parts.append('(label :class "wsm-hint" :text "select a session to load/rename/delete")')
@@ -527,7 +573,7 @@ def emit_panel_data():
         '(label :class "wsm-h2" :text "PRESETS") (box :orientation "v" :spacing 2 :halign "fill" %s)'
         '(label :class "wsm-h2" :text "SELECTED") %s'
         '(box :class "wsm-actions" :orientation "v" :halign "fill" :spacing 4 %s)'
-        '(label :class "wsm-msg" :text "%s") %s)'
+        '(label :class "wsm-msg" :text "%s") %s %s)'
         % (
             emit_sessions(st, sel),
             emit_presets(),
@@ -535,6 +581,7 @@ def emit_panel_data():
             emit_actions(sel),
             yuck_text(st["message"]),
             '(label :class "wsm-hint" :text "Delete confirm: press [D] again")' if st["confirm"] else "",
+            emit_device(),
         ),
         flush=True,
     )
@@ -758,6 +805,16 @@ def main():
         cmd_prompt_capture()
     elif cmd == "prompt-rename":
         cmd_prompt_rename()
+    elif cmd == "device":
+        if not rest:
+            die("device requires a subcommand", 2)
+        sub = rest[0]
+        if sub == "cpu":
+            if not rest[1:]:
+                die("device cpu requires a mode (performance|powersave)", 2)
+            cmd_device_cpu(rest[1])
+        else:
+            die("unknown device subcommand '%s'" % sub, 2)
     elif cmd == "preset":
         if not rest:
             die("preset requires list|inspect|launch", 2)
