@@ -1,21 +1,19 @@
 ; eww x% is monitor-centered plus a root-width fraction (0% = centered in the
 ; left-most output). On this dual-1920x1080 setup 0% pins it inside HDMI-A-0.
 (deflisten ws_panel "$HOME/.config/bspwm/bin/workspace-manager panel-ws")
-(defpoll wsm_panel :interval "1s" "$HOME/.config/bspwm/bin/workspace-manager panel-data")
+(deflisten wsm_panel "$HOME/.config/bspwm/bin/workspace-manager panel-watch")
 
 (defwidget wsmanager-dashboard []
-  (box :class "wmpanel" :orientation "v" :spacing 6 :space-evenly false
+  (box :class "wmpanel" :orientation "v" :spacing 6 :space-evenly false :halign "fill"
     (box :class "wsm-header" :space-evenly false
       (label :class "wsm-title" :text "WORKSPACE MANAGER")
       (label :class "wsm-status" :halign "end" :text "bspwm ● ONLINE"))
-    (box :orientation "h" :spacing 12 :space-evenly false :vexpand true
-      (box :class "wsm-col" :orientation "v" :spacing 4 :space-evenly false
-        (label :class "wsm-h2" :text "WORKSPACES")
-        (literal :content ws_panel))
-      (box :class "wsm-col" :orientation "v" :space-evenly false
-        (literal :content wsm_panel)))
+    (box :class "wsm-col" :orientation "v" :spacing 4 :space-evenly false
+      (label :class "wsm-h2" :text "WORKSPACES")
+      (literal :content ws_panel))
+    (literal :content wsm_panel)
     (box :class "wsm-footer" :orientation "h" :spacing 8 :space-evenly false
-      (label :class "wsm-key" :text "[C] save-as   [R] rename   [L] load   [D] delete   [Q] close")
+      (label :class "wsm-key" :text "save-as  rename  load  delete  |  close")
       (button :class "wsm-btn" :halign "end"
               :onclick "eww -c ~/.config/bspwm/eww close wsmanager-popup"
               "close"))))
@@ -24,7 +22,7 @@
     :monitor "HDMI-A-0"
     :geometry (geometry :x "0%"
                         :y "-70px"
-                        :width "50%"
+                        :width "40%"
                         :anchor "bottom center")
     :wm-ignore true
   (wsmanager-dashboard))

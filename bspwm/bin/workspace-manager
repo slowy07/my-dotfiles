@@ -117,6 +117,10 @@ def launch_command(winid):
             return ""
         with open("/proc/%s/cmdline" % pid, "rb") as f:
             argv = [a.decode(errors="replace") for a in f.read().split(b"\0") if a]
+        # ponytail: strip flags that make a relaunch invisible (ghostty's
+        # --initial-window=false would re-sniff with no window); extend the
+        # list if other apps capture similar no-window flags.
+        argv = [a for a in argv if a != "--initial-window=false"]
         if not argv:
             return ""
         return shlex.join(argv)
@@ -455,7 +459,7 @@ def emit_sessions(st, sel):
         cls = "sess-entry" + (" sess-active" if name == sel else "")
         arrow = "\u2192" if name == sel else "\u00b7"
         parts.append(
-            '(button :class "%s" :onclick "workspace-manager select %s" '
+            '(button :class "%s" :halign "fill" :onclick "workspace-manager select %s" '
             '(label :text "%s %s"))'
             % (cls, shlex.quote(name), arrow, name)
         )
@@ -468,7 +472,7 @@ def emit_presets():
     parts = []
     for name in list_presets():
         parts.append(
-            '(button :class "preset-entry" :onclick "workspace-manager preset launch %s" '
+            '(button :class "preset-entry" :halign "fill" :onclick "workspace-manager preset launch %s" '
             '(label :text "\u00b7 %s"))' % (shlex.quote(name), name)
         )
     if not parts:
@@ -494,13 +498,18 @@ def emit_details(sel):
 
 
 def emit_actions(sel):
-    parts = ['(button :class "wsm-btn" :onclick "workspace-manager prompt-capture" "[C] Save-as")']
+    # eww SIGKILLs the onclick child's process group ~1s after the click, so any
+    # command that can outlive that (rofi prompt, restore) runs detached via setsid.
+    def detach(cmd):
+        return "sh -c 'setsid -f %s'" % cmd
+
+    parts = ['(button :class "wsm-btn" :halign "fill" :onclick "%s" "[C] Save session")' % detach("workspace-manager prompt-capture")]
     if not sel:
-        parts.append('(label :class "wsm-hint" :text "[ select a session for more actions ]")')
+        parts.append('(label :class "wsm-hint" :text "select a session to load/rename/delete")')
         return "".join(parts)
-    parts.append('(button :class "wsm-btn" :onclick "workspace-manager prompt-rename" "[R] Rename")')
-    parts.append('(button :class "wsm-btn" :onclick "workspace-manager restore %s" "[L] Load")' % shlex.quote(sel))
-    parts.append('(button :class "wsm-btn" :onclick "workspace-manager delete %s" "[D] Delete")' % shlex.quote(sel))
+    parts.append('(button :class "wsm-btn" :halign "fill" :onclick "%s" "[R] Rename")' % detach("workspace-manager prompt-rename"))
+    parts.append('(button :class "wsm-btn" :halign "fill" :onclick "%s" "[L] Load" )' % detach("workspace-manager restore %s" % shlex.quote(sel)))
+    parts.append('(button :class "wsm-btn" :halign "fill" :onclick "%s" "[D] Delete")' % detach("workspace-manager delete %s" % shlex.quote(sel)))
     return "".join(parts)
 
 
@@ -508,11 +517,11 @@ def emit_panel_data():
     st = read_state()
     sel = st["selected"]
     print(
-        '(box :class "wsm-data" :orientation "v" :spacing 6 :space-evenly false '
-        '(label :class "wsm-h2" :text "SAVED") (box :orientation "v" :spacing 2 %s)'
-        '(label :class "wsm-h2" :text "PRESETS") (box :orientation "v" :spacing 2 %s)'
+        '(box :class "wsm-data" :orientation "v" :spacing 6 :space-evenly false :halign "fill" '
+        '(label :class "wsm-h2" :text "SAVED") (box :orientation "v" :spacing 2 :halign "fill" %s)'
+        '(label :class "wsm-h2" :text "PRESETS") (box :orientation "v" :spacing 2 :halign "fill" %s)'
         '(label :class "wsm-h2" :text "SELECTED") %s'
-        '(box :class "wsm-actions" :orientation "h" :spacing 6 %s)'
+        '(box :class "wsm-actions" :orientation "v" :halign "fill" :spacing 4 %s)'
         '(label :class "wsm-msg" :text "%s") %s)'
         % (
             emit_sessions(st, sel),
@@ -602,12 +611,27 @@ def cmd_rename(old, new):
 
 
 def prompt_name(prompt):
-    r = subprocess.run(
-        ["rofi", "-dmenu", "-p", prompt],
-        capture_output=True,
+    # eww SIGKILLs the onclick spawn's process group ~1s after the click, so this
+    # runs detached (see emit_actions). -no-grab makes keys follow the X input
+    # focus instead of rofi's own grab, which we hold on rofi until it exits.
+    r = subprocess.Popen(
+        ["rofi", "-dmenu", "-no-grab", "-p", prompt],
+        stdout=subprocess.PIPE,
         text=True,
     )
-    return r.stdout.strip() if r.returncode == 0 else ""
+    targeted = False
+    while r.poll() is None:
+        if not targeted:
+            time.sleep(0.15)
+        ids = sh_opt("xdotool", "search", "--class", "rofi").split()
+        if ids:
+            sh_opt("xdotool", "windowfocus", ids[-1])
+            targeted = True
+        time.sleep(0.15)
+    out = r.stdout.read()
+    if r.returncode != 0 or not out.strip():
+        return ""
+    return out.strip().splitlines()[-1]
 
 
 def cmd_prompt_capture():
@@ -636,6 +660,26 @@ def cmd_panel_ws_loop():
         )
         for _ in p.stdout:
             emit_ws_panel()
+    except KeyboardInterrupt:
+        pass
+
+
+def cmd_panel_data_watch():
+    snap = None
+    try:
+        while True:
+            try:
+                key = (
+                    os.path.getmtime(STATE_FILE) if os.path.exists(STATE_FILE) else 0,
+                    tuple(list_sessions()),
+                    tuple(list_presets()),
+                )
+            except Exception:
+                key = None
+            if key != snap:
+                snap = key
+                emit_panel_data()
+            time.sleep(0.4)
     except KeyboardInterrupt:
         pass
 
@@ -730,6 +774,8 @@ def main():
         cmd_panel_ws_loop()
     elif cmd == "panel-data":
         emit_panel_data()
+    elif cmd == "panel-watch":
+        cmd_panel_data_watch()
     elif cmd == "selftest":
         selftest()
     else:
