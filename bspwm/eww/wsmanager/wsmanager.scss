@@ -54,10 +54,18 @@ $wsm-border: mix($bg, $fg, 72%);
   border-radius: 0.25rem;
 }
 
+.wsd-num {
+  color: $wsm-bg4;
+}
+
 .wsd-layout {
   color: $wsm-bg4;
   font-size: 0.9rem;
 }
+
+.wsd-lt { color: $cyan; }
+.wsd-lm { color: $yellow; }
+.wsd-lf { color: $magenta; }
 
 .wsd-focus {
   color: $green;

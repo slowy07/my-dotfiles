@@ -434,6 +434,9 @@ def launch_preset(name):
 # ---- yuck rendering (eww consumes this) ----
 
 
+LAYOUT_CLS = {"tiled": "wsd-lt", "monocle": "wsd-lm", "floating": "wsd-lf"}
+
+
 def emit_ws_panel():
     parts = []
     for w in workspace_status():
@@ -444,11 +447,13 @@ def emit_ws_panel():
         else:
             mark, cls = "\u00b7", "wsd-empty"
         name = w["name"]
+        lcls = LAYOUT_CLS.get(w["layout"], "wsd-layout")
         parts.append(
-            '(button :class "wsd-entry %s" :onclick "bspc desktop -f %s" '
-            "(box :spacing 8 (label :text \"%s\") (label :text \"%s\")"
-            '(label :class "wsd-layout" :text "%s")))'
-            % (cls, shlex.quote(name), mark, name, w["layout"])
+            '(button :class "wsd-entry %s" :halign "fill" :onclick "bspc desktop -f %s" '
+            '(box :halign "fill" :spacing 8 '
+            '(label :text "%s") (label :class "wsd-num" :text "%s") '
+            '(label :class "%s" :text "%s" :halign "end")))'
+            % (cls, shlex.quote(name), mark, name.rjust(2), lcls, w["layout"])
         )
     print('(box :class "wsd-list" :orientation "v" :spacing 2 %s)' % "".join(parts), flush=True)
 
