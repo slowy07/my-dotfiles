@@ -4,6 +4,10 @@
 
 im using everblush for my current theme cause so calm and aesthetic. you can check on this [repository](https://github.com/Everblush)
 
+## Hyprland
+
+The Hyprland configuration is stored in [`hyprland/`](hyprland/). Installation instructions are provided in [`hyprland/README.md`](hyprland/README.md).
+
 ## zsh
 
 im using framework ohmyzsh for manage zsh configuration. for installation you can check [this website](https://ohmyz.sh/)

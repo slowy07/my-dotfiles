@@ -1,0 +1,8 @@
+{
+    "name": "GLYPH",
+    "tagline": "black · white dots · one red",
+    "title": "Doto",
+    "text": "JetBrainsMono Nerd Font",
+    "bg": "#000000", "surface": "#0E0E0E", "line": "#2A2A2A", "fg": "#F2F2F2", "dim": "#8C8C8C", "accent": "#D71921",
+    "palette": ["#000000", "#0E0E0E", "#1A1A1A", "#2A2A2A", "#4A4A4A", "#8C8C8C", "#F2F2F2", "#D71921"]
+}

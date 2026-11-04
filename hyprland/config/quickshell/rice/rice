@@ -1,0 +1,91 @@
+#!/bin/sh
+# rice — какой шелл quickshell сейчас живой (demonshot, glyph…) и переключение между ними.
+#   rice                текущий
+#   rice list           все шеллы: папки в ~/.config/quickshell с rice.json
+#   rice start          поднять текущий (hypr на старте)
+#   rice restart|kill   перезапустить / погасить текущий
+#   rice switch <имя>   погасить текущий, вернуть hypr к его конфигу, поднять другой
+#   rice lock           блокировка текущего шелла (бинд, hypridle, меню питания)
+q=$HOME/.config/quickshell
+state=${XDG_STATE_HOME:-$HOME/.local/state}/rice
+cur=$(cat "$state/shell" 2>/dev/null)
+[ -f "$q/$cur/rice.json" ] || cur=glyph
+
+# терминал и приложения в духе шелла: ~/.config/<f> ссылается на term/<f> шелла. starship и fastfetch читают конфиг на каждый
+# запуск, открытые cava (USR1) и btop (USR2) перечитывают по сигналу, gtk — при смене темы (дёргаем туда-обратно),
+# qt (qtengine.colors из ~/.config/qtengine/config.json) — при следующем запуске. Настоящий файл (не ссылку) не трогаем
+term() {
+    for f in starship.toml cava btop gtk-3.0/gtk.css gtk-4.0/gtk.css qtengine.colors; do
+        [ -e "$q/$1/term/$f" ] || continue
+        [ -L "$HOME/.config/$f" ] || [ ! -e "$HOME/.config/$f" ] || continue
+        ln -sfn "$q/$1/term/$f" "$HOME/.config/$f"
+    done
+    pkill -USR1 -x cava; pkill -USR2 -x btop
+    folders "$1"
+    g=org.gnome.desktop.interface
+    t=$(gsettings get $g gtk-theme)
+    gsettings set $g gtk-theme Adwaita; gsettings set $g gtk-theme "$t"
+    gsettings set $g icon-theme Papirus-Dark; gsettings set $g icon-theme Rice
+}
+
+# папки в цвет шелла (term/folders: grey, carmine… — цвета Papirus): тема значков Rice поверх Papirus-Dark, где folder-*/user-*
+# ссылаются на нужный цвет — то же, что делает papirus-folders, только у себя в ~/.local/share и без sudo. Её же берёт qtengine
+folders() {
+    c=$(cat "$q/$1/term/folders" 2>/dev/null) || return 0
+    d=${XDG_DATA_HOME:-$HOME/.local/share}/icons/Rice
+    p=/usr/share/icons/Papirus-Dark
+    [ "$(cat "$d/color" 2>/dev/null)" = "$c" ] && return 0
+    rm -rf "$d"
+    dirs=; secs=
+    for s in 22x22 24x24 32x32 48x48 64x64; do
+        mkdir -p "$d/$s/places"
+        for f in "$p/$s/places/folder-$c"*.svg "$p/$s/places/user-$c"*.svg; do
+            [ -e "$f" ] || continue
+            n=${f##*/}
+            ln -s "$f" "$d/$s/places/${n%%-"$c"*}${n#*-"$c"}"
+        done
+        dirs=$dirs${dirs:+,}$s/places
+        secs="$secs
+[$s/places]
+Context=Places
+Size=${s%x*}
+Type=Fixed
+"
+    done
+    printf '[Icon Theme]\nName=Rice\nComment=Papirus-Dark, folders in %s (rice)\nInherits=Papirus-Dark,breeze-dark,hicolor\nDirectories=%s\n%s' "$c" "$dirs" "$secs" > "$d/index.theme"
+    echo "$c" > "$d/color"
+}
+
+# погасить все экземпляры шелла и дождаться: qs kill гасит один, а лишние копии рисуют всё дважды и держат dbus-имена
+# (уведомления, трей) — новый шелл их не получит
+pids() { qs list --all 2>/dev/null | awk -v p="$q/$1/shell.qml" '$1 == "Process" { pid = $3 } $1 == "Config" && $3 == p { print pid }'; }
+stop() {
+    pids=$(pids "$1")
+    [ -n "$pids" ] || return 0
+    kill $pids 2>/dev/null
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        alive=
+        for p in $pids; do kill -0 "$p" 2>/dev/null && alive=1; done
+        [ -n "$alive" ] || return 0
+        sleep 0.2
+    done
+    kill -9 $pids 2>/dev/null
+}
+
+case $1 in
+    "") echo "$cur" ;;
+    list) for f in "$q"/*/rice.json; do basename "$(dirname "$f")"; done ;;
+    start) [ -n "$(pids "$cur")" ] && exit 0; mkdir -p "$state"; term "$cur"; exec qs -p "$q/$cur" -d ;;
+    restart) term "$cur"; stop "$cur"; exec qs -p "$q/$cur" -d ;;
+    kill) stop "$cur" ;;
+    switch)
+        [ -f "$q/$2/rice.json" ] || { echo "rice: нет шелла «$2»" >&2; exit 1; }
+        mkdir -p "$state"
+        echo "$2" > "$state/shell"
+        stop "$cur"
+        hyprctl reload >/dev/null # снять вид прошлого шелла: новый накладывает свой поверх конфига hypr
+        term "$2"
+        exec qs -p "$q/$2" -d ;;
+    lock) pgrep -f '^qs .*/lock[.]qml' >/dev/null || exec qs -p "$q/$cur/lock.qml" ;;
+    *) sed -n '2,8s/^# //p' "$0"; exit 1 ;;
+esac

@@ -1,0 +1,77 @@
+/* glyph: чёрный, белые точки, один красный — палитра Theme.qml. Вкл и выбранное — белое с чёрным текстом, кнопки и поля — пилюли,
+   красный — только опасное. Ссылку ~/.config/gtk-{3,4}.0/gtk.css ставит `rice` (term), у demonshot своя.
+   Правила пользовательского css сильнее темы при любой специфичности: что задано здесь, задано и для всех состояний */
+@define-color accent_color #F2F2F2;
+@define-color accent_bg_color #F2F2F2;
+@define-color accent_fg_color #000000;
+@define-color destructive_color #D71921;
+@define-color destructive_bg_color #D71921;
+@define-color destructive_fg_color #F2F2F2;
+@define-color window_bg_color #000000;
+@define-color window_fg_color #F2F2F2;
+@define-color view_bg_color #0E0E0E;
+@define-color view_fg_color #F2F2F2;
+@define-color headerbar_bg_color #000000;
+@define-color headerbar_fg_color #F2F2F2;
+@define-color headerbar_border_color #000000;
+@define-color headerbar_backdrop_color #000000;
+@define-color popover_bg_color #0E0E0E;
+@define-color popover_fg_color #F2F2F2;
+@define-color dialog_bg_color #0E0E0E;
+@define-color dialog_fg_color #F2F2F2;
+@define-color card_bg_color #1A1A1A;
+@define-color card_fg_color #F2F2F2;
+@define-color sidebar_bg_color #000000;
+@define-color sidebar_fg_color #F2F2F2;
+@define-color sidebar_border_color #000000;
+@define-color sidebar_backdrop_color #000000;
+@define-color borders #2A2A2A;
+
+/* gtk3 (adw-gtk3) */
+@define-color theme_bg_color #000000;
+@define-color theme_fg_color #F2F2F2;
+@define-color theme_base_color #0E0E0E;
+@define-color theme_text_color #F2F2F2;
+@define-color theme_selected_bg_color #F2F2F2;
+@define-color theme_selected_fg_color #000000;
+@define-color insensitive_fg_color #4A4A4A;
+
+window, popover, menu { font-family: "Space Grotesk"; }
+
+/* ---- пилюли; в склеенных группах внутренние углы прямые ---- */
+button, entry { border-radius: 999px; }
+entry { padding-left: 14px; padding-right: 14px; }
+.linked:not(.vertical) > button:not(:first-child), .linked:not(.vertical) > entry:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.linked:not(.vertical) > button:not(:last-child), .linked:not(.vertical) > entry:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.linked.vertical > button, .linked.vertical > entry { border-radius: 12px; }
+popover > contents, popover.background { border-radius: 24px; }
+
+/* вкл — белая дорожка, чёрный бегунок (белый на белом пропал бы) */
+switch:checked slider { background-color: #000000; }
+
+scrollbar slider { border-radius: 999px; background-color: #4A4A4A; }
+scrollbar slider:hover, scrollbar slider:active { background-color: #8C8C8C; }
+
+/* ---- thunar: файлы — карточка s1 на чёрном, слева ярлыки, путь и строка состояния — Space Mono ---- */
+.thunar paned > separator { min-width: 12px; background: none; box-shadow: none; }
+
+.thunar .standard-view { background-color: #0E0E0E; border-radius: 28px; padding: 10px; margin: 0 12px 0 0; }
+.thunar .standard-view .view:not(.rubberband), .thunar .standard-view .view *:not(.rubberband) { background-color: transparent; }
+.thunar .standard-view .view:selected, .thunar .standard-view .view *:selected { background-color: #F2F2F2; color: #000000; border-radius: 14px; }
+/* в таблице (подробный вид) у каждой колонки свой фон — скругление порезало бы строку на пилюли */
+.thunar .standard-view treeview.view:selected, .thunar .standard-view treeview.view *:selected { border-radius: 0; }
+.thunar .rubberband { background-color: alpha(#F2F2F2, 0.08); border: 1px solid alpha(#F2F2F2, 0.4); }
+
+.thunar .sidebar, .thunar .sidebar .view { background: none; }
+.thunar .sidebar .view { padding: 8px 12px; border-radius: 999px; }
+.thunar .sidebar .view:hover { background-color: #1A1A1A; }
+.thunar .sidebar .view:selected { background-color: #F2F2F2; color: #000000; }
+
+.thunar .path-bar-button { font-family: "Space Mono"; font-size: 12px; letter-spacing: 1px; padding: 6px 14px; }
+.thunar .path-bar-button:checked { background-color: #F2F2F2; color: #000000; box-shadow: none; }
+
+.thunar notebook header { background: none; box-shadow: none; border: none; }
+.thunar notebook header tab { border-radius: 999px; padding: 4px 16px; box-shadow: none; }
+.thunar notebook header tab:checked { background-color: #F2F2F2; color: #000000; }
+
+.thunar statusbar { font-family: "Space Mono"; font-size: 11px; letter-spacing: 1.5px; color: #8C8C8C; padding: 6px 12px; }
