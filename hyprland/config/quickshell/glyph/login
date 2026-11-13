@@ -1,0 +1,122 @@
+#!/bin/sh
+# glyph login: switch the pre-desktop display manager between the default
+# LightDM and SDDM with the glyph theme. Run through pkexec from Prefs.
+# The change takes effect on the next reboot or logout, never by restarting
+# the display manager inside a session.
+#
+#   login status                  print "glyph" or "default"
+#   login check                   exit 0 when switching is possible
+#   login apply glyph             install the theme, enable sddm, disable lightdm
+#   login apply default           remove the glyph conf, enable lightdm, disable sddm
+#   login --dry-run apply glyph   print the actions without running them
+
+set -eu
+
+self=$0
+while [ -L "$self" ]; do
+    dir=$(cd -P "$(dirname "$self")" && pwd)
+    self=$(readlink "$self")
+    case $self in
+        /*) ;;
+        *) self=$dir/$self ;;
+    esac
+done
+dir=$(cd -P "$(dirname "$self")" && pwd)
+theme=$dir/../../sddm/glyph
+conf=/etc/sddm.conf.d/zz-glyph.conf
+dm=/etc/systemd/system/display-manager.service
+
+dry=0
+if [ "${1:-}" = "--dry-run" ]; then
+    dry=1
+    shift
+fi
+cmd=${1:-status}
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'login: %s\n' "$*" >&2; exit 1; }
+
+run() {
+    if [ "$dry" -eq 1 ]; then
+        printf '+ %s\n' "$*"
+    else
+        "$@"
+    fi
+}
+
+is_root() { [ "$(id -u)" -eq 0 ]; }
+
+current() {
+    target=$(readlink -f "$dm" 2>/dev/null || true)
+    case $target in
+        */sddm.service)
+            if grep -qsE '^[[:space:]]*Current=glyph[[:space:]]*$' "$conf" 2>/dev/null; then
+                printf 'glyph\n'
+                return
+            fi
+            ;;
+    esac
+    printf 'default\n'
+}
+
+check() {
+    missing=
+    [ -x /usr/bin/sddm ] || missing="$missing sddm"
+    [ -x /usr/bin/lightdm ] || missing="$missing lightdm"
+    [ -d /usr/share/sddm/themes ] || missing="$missing /usr/share/sddm/themes"
+    [ -f "$theme/Main.qml" ] || missing="$missing $theme/Main.qml"
+    if [ -n "$missing" ]; then
+        say "missing:$missing"
+        return 1
+    fi
+    say "ready"
+}
+
+write_conf() {
+    if [ "$dry" -eq 1 ]; then
+        say "+ write $conf"
+        say "  [Theme] Current=glyph"
+        say "  [General] InputMethod="
+    else
+        mkdir -p "$(dirname "$conf")"
+        printf '[Theme]\nCurrent=glyph\n\n[General]\nInputMethod=\n' > "$conf"
+        chmod 644 "$conf"
+    fi
+}
+
+apply_glyph() {
+    check >/dev/null || { check; exit 1; }
+    is_root || [ "$dry" -eq 1 ] || die "apply needs root, run it through pkexec"
+    if [ "$dry" -eq 0 ] && grep -qsE '^[[:space:]]*Current=' /etc/sddm.conf 2>/dev/null \
+        && ! grep -qsE '^[[:space:]]*Current=glyph[[:space:]]*$' /etc/sddm.conf; then
+        say "warning: /etc/sddm.conf overrides conf.d; set Current=glyph there"
+    fi
+    run rm -rf /usr/share/sddm/themes/glyph
+    run cp -rLT "$theme" /usr/share/sddm/themes/glyph
+    run chmod -R a+rX /usr/share/sddm/themes/glyph
+    write_conf
+    run systemctl disable lightdm
+    run systemctl enable --force sddm
+    say "glyph is set; reboot or log out to use it"
+}
+
+apply_default() {
+    is_root || [ "$dry" -eq 1 ] || die "apply needs root, run it through pkexec"
+    run rm -f "$conf"
+    run systemctl disable sddm
+    run systemctl enable --force lightdm
+    say "default is set; reboot or log out to use it"
+}
+
+case $cmd in
+    status) current ;;
+    check) check ;;
+    apply)
+        target=${2:-}
+        case $target in
+            glyph) apply_glyph ;;
+            default) apply_default ;;
+            *) die "usage: login apply glyph|default" ;;
+        esac ;;
+    *) die "usage: login [--dry-run] status|check|apply glyph|default" ;;
+esac

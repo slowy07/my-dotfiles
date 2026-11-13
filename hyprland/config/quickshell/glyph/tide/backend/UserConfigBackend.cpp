@@ -1,0 +1,572 @@
+#include "UserConfigBackend.h"
+#include "../common/JsonComments.h"
+#include "../common/LockScreenConfig.h"
+
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QJsonValue>
+#include <QSet>
+#include <QVariant>
+#include <Qt>
+
+#include <algorithm>
+#include <cmath>
+
+namespace {
+QVariantList defaultDynamicIslandLeftSwipeItems()
+{
+    return {
+        QStringLiteral("time"),
+        QStringLiteral("date"),
+        QStringLiteral("workspace"),
+        QStringLiteral("storage"),
+        QStringLiteral("battery"),
+        QStringLiteral("cpu"),
+        QStringLiteral("ram"),
+        QStringLiteral("cava"),
+        QStringLiteral("albumcover"),
+        QStringLiteral("trackname"),
+    };
+}
+
+QString jsonString(const QJsonObject &object, QLatin1String key, const QString &fallback)
+{
+    const QJsonValue value = object.value(key);
+    return value.isString() && !value.toString().isEmpty() ? value.toString() : fallback;
+}
+
+int jsonInt(const QJsonObject &object, QLatin1String key, int fallback)
+{
+    const QJsonValue value = object.value(key);
+    if (!value.isDouble())
+        return fallback;
+
+    const double number = value.toDouble();
+    return std::isfinite(number) ? qRound(number) : fallback;
+}
+
+int jsonBoundedInt(const QJsonObject &object, QLatin1String key, int fallback, int minimum, int maximum)
+{
+    return std::clamp(jsonInt(object, key, fallback), minimum, maximum);
+}
+
+double jsonDouble(const QJsonObject &object, QLatin1String key, double fallback)
+{
+    const QJsonValue value = object.value(key);
+    if (!value.isDouble())
+        return fallback;
+
+    const double number = value.toDouble();
+    return std::isfinite(number) ? number : fallback;
+}
+
+QVariantList jsonArray(const QJsonObject &object, QLatin1String key, const QVariantList &fallback)
+{
+    const QJsonValue value = object.value(key);
+    return value.isArray() ? value.toArray().toVariantList() : fallback;
+}
+
+bool jsonBool(const QJsonObject &object, QLatin1String key, bool fallback)
+{
+    const QJsonValue value = object.value(key);
+    return value.isBool() ? value.toBool() : fallback;
+}
+
+template<typename Owner, typename T, typename Signal>
+void updateField(Owner *owner, T &field, T nextValue, Signal signal)
+{
+    if (field == nextValue)
+        return;
+
+    field = std::move(nextValue);
+    emit(owner->*signal)();
+}
+}
+
+UserConfigBackend::UserConfigBackend(QObject *parent)
+    : QObject(parent)
+    , m_userConfigPath(configHome() + QStringLiteral("/tide-island/userconfig.json"))
+    , m_dynamicIslandLeftSwipeItems(defaultDynamicIslandLeftSwipeItems())
+{
+    m_reloadTimer.setSingleShot(true);
+    m_reloadTimer.setInterval(50);
+
+    connect(&m_reloadTimer, &QTimer::timeout, this, &UserConfigBackend::loadConfig);
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &UserConfigBackend::scheduleReload);
+    connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, &UserConfigBackend::scheduleReload);
+
+    loadConfig();
+}
+
+QString UserConfigBackend::userConfigPath() const
+{
+    return m_userConfigPath;
+}
+
+QString UserConfigBackend::configError() const
+{
+    return m_configError;
+}
+
+QString UserConfigBackend::defaultWallpaperPath() const
+{
+    return m_defaultWallpaperPath;
+}
+
+QString UserConfigBackend::defaultTlpSudoPassword() const
+{
+    return m_defaultTlpSudoPassword;
+}
+
+QString UserConfigBackend::wallpaperPath() const
+{
+    return m_wallpaperPath;
+}
+
+QString UserConfigBackend::wallpaperLibraryPath() const
+{
+    return m_wallpaperLibraryPath;
+}
+
+bool UserConfigBackend::wallpaperPywalEnabled() const
+{
+    return m_wallpaperPywalEnabled;
+}
+
+bool UserConfigBackend::wallpaperCustomCommandEnabled() const
+{
+    return m_wallpaperCustomCommandEnabled;
+}
+
+QString UserConfigBackend::wallpaperCustomCommand() const
+{
+    return m_wallpaperCustomCommand;
+}
+
+QString UserConfigBackend::wallpaperTransitionType() const
+{
+    return m_wallpaperTransitionType;
+}
+
+int UserConfigBackend::wallpaperTransitionStep() const
+{
+    return m_wallpaperTransitionStep;
+}
+
+double UserConfigBackend::wallpaperTransitionDuration() const
+{
+    return m_wallpaperTransitionDuration;
+}
+
+int UserConfigBackend::wallpaperTransitionFps() const
+{
+    return m_wallpaperTransitionFps;
+}
+
+int UserConfigBackend::wallpaperTransitionAngle() const
+{
+    return m_wallpaperTransitionAngle;
+}
+
+QString UserConfigBackend::wallpaperTransitionPosition() const
+{
+    return m_wallpaperTransitionPosition;
+}
+
+QString UserConfigBackend::wallpaperTransitionBezier() const
+{
+    return m_wallpaperTransitionBezier;
+}
+
+QString UserConfigBackend::wallpaperTransitionWave() const
+{
+    return m_wallpaperTransitionWave;
+}
+
+bool UserConfigBackend::wallpaperTransitionInvertY() const
+{
+    return m_wallpaperTransitionInvertY;
+}
+
+QString UserConfigBackend::iconFontFamily() const
+{
+    return m_iconFontFamily;
+}
+
+QString UserConfigBackend::textFontFamily() const
+{
+    return m_textFontFamily;
+}
+
+QString UserConfigBackend::heroFontFamily() const
+{
+    return m_heroFontFamily;
+}
+
+QString UserConfigBackend::timeFontFamily() const
+{
+    return m_timeFontFamily;
+}
+
+QString UserConfigBackend::clockFormat() const
+{
+    return m_clockFormat;
+}
+
+QString UserConfigBackend::tlpSudoPassword() const
+{
+    return m_tlpSudoPassword;
+}
+
+QString UserConfigBackend::tlpPermissionMode() const
+{
+    return m_tlpPermissionMode;
+}
+
+QString UserConfigBackend::powerProfileDriver() const
+{
+    return m_powerProfileDriver;
+}
+
+int UserConfigBackend::workspaceOverviewWindowDragButton() const
+{
+    return m_workspaceOverviewWindowDragButton;
+}
+
+int UserConfigBackend::dynamicIslandPrimaryButton() const
+{
+    return m_dynamicIslandPrimaryButton;
+}
+
+QString UserConfigBackend::dynamicIslandPrimaryAction() const
+{
+    return m_dynamicIslandPrimaryAction;
+}
+
+int UserConfigBackend::dynamicIslandSecondaryButton() const
+{
+    return m_dynamicIslandSecondaryButton;
+}
+
+QString UserConfigBackend::dynamicIslandSecondaryAction() const
+{
+    return m_dynamicIslandSecondaryAction;
+}
+
+int UserConfigBackend::dynamicIslandMiddleButton() const
+{
+    return m_dynamicIslandMiddleButton;
+}
+
+QString UserConfigBackend::dynamicIslandMiddleAction() const
+{
+    return m_dynamicIslandMiddleAction;
+}
+
+const QVariantList &UserConfigBackend::dynamicIslandLeftSwipeItems() const
+{
+    return m_dynamicIslandLeftSwipeItems;
+}
+
+bool UserConfigBackend::disableAutoExpandOnTrackChange() const
+{
+    return m_disableAutoExpandOnTrackChange;
+}
+
+int UserConfigBackend::hoverExpandAction() const
+{
+    return m_hoverExpandAction;
+}
+
+bool UserConfigBackend::islandAutoHideEnabled() const
+{
+    return m_islandAutoHideEnabled;
+}
+
+bool UserConfigBackend::islandShowWorkspaceOnAutoHide() const
+{
+    return m_islandShowWorkspaceOnAutoHide;
+}
+
+int UserConfigBackend::islandAutoHideDelayMs() const
+{
+    return m_islandAutoHideDelayMs;
+}
+
+int UserConfigBackend::islandWidth() const
+{
+    return m_islandWidth;
+}
+
+int UserConfigBackend::islandBackgroundOpacity() const
+{
+    return m_islandBackgroundOpacity;
+}
+
+bool UserConfigBackend::islandBlurEnabled() const
+{
+    return m_islandBlurEnabled;
+}
+
+int UserConfigBackend::islandHeight() const
+{
+    return m_islandHeight;
+}
+
+int UserConfigBackend::islandExclusiveZone() const
+{
+    return m_islandExclusiveZone;
+}
+
+int UserConfigBackend::islandTopMargin() const
+{
+    return m_islandTopMargin;
+}
+
+int UserConfigBackend::islandPositionX() const
+{
+    return m_islandPositionX;
+}
+
+int UserConfigBackend::bodyFontSize() const
+{
+    return m_bodyFontSize;
+}
+
+int UserConfigBackend::titleFontSize() const
+{
+    return m_titleFontSize;
+}
+
+int UserConfigBackend::iconFontSize() const
+{
+    return m_iconFontSize;
+}
+
+bool UserConfigBackend::weatherEnabled() const
+{
+    return m_weatherEnabled;
+}
+
+QString UserConfigBackend::weatherLocation() const
+{
+    return m_weatherLocation;
+}
+
+QString UserConfigBackend::weatherUnits() const
+{
+    return m_weatherUnits;
+}
+
+int UserConfigBackend::weatherRefreshInterval() const
+{
+    return m_weatherRefreshInterval;
+}
+
+void UserConfigBackend::setDefaultWallpaperPath(const QString &path)
+{
+    if (m_defaultWallpaperPath == path)
+        return;
+
+    m_defaultWallpaperPath = path;
+    emit defaultWallpaperPathChanged();
+    loadConfig();
+}
+
+void UserConfigBackend::setDefaultTlpSudoPassword(const QString &password)
+{
+    if (m_defaultTlpSudoPassword == password)
+        return;
+
+    m_defaultTlpSudoPassword = password;
+    emit defaultTlpSudoPasswordChanged();
+    loadConfig();
+}
+
+int UserConfigBackend::mouseButton(const QVariant &button) const
+{
+    bool ok = false;
+    const int numericButton = button.toInt(&ok);
+    if (!ok)
+        return Qt::NoButton;
+
+    switch (numericButton) {
+    case 1:
+        return Qt::LeftButton;
+    case 2:
+        return Qt::MiddleButton;
+    case 3:
+        return Qt::RightButton;
+    default:
+        return numericButton;
+    }
+}
+
+int UserConfigBackend::mouseButtonsMask(const QVariant &buttons) const
+{
+    if (!buttons.isValid() || buttons.isNull())
+        return Qt::NoButton;
+
+    if (buttons.canConvert<QVariantList>()) {
+        int mask = Qt::NoButton;
+        const QVariantList buttonList = buttons.toList();
+        for (const QVariant &button : buttonList)
+            mask |= mouseButton(button);
+        return mask;
+    }
+
+    return mouseButton(buttons);
+}
+
+void UserConfigBackend::reload()
+{
+    loadConfig();
+}
+
+void UserConfigBackend::scheduleReload()
+{
+    if (!m_reloadTimer.isActive())
+        m_reloadTimer.start();
+}
+
+void UserConfigBackend::loadConfig()
+{
+    updateWatchedPaths();
+
+    QJsonObject configObject;
+    QString nextConfigError;
+
+    QFile configFile(m_userConfigPath);
+    if (configFile.exists()) {
+        if (!configFile.open(QIODevice::ReadOnly)) {
+            nextConfigError = QStringLiteral("Could not read %1: %2").arg(m_userConfigPath, configFile.errorString());
+        } else {
+            const QByteArray configBytes = configFile.readAll();
+            if (!configBytes.trimmed().isEmpty()) {
+                const QByteArray strippedBytes = JsonComments::strip(configBytes);
+                QJsonParseError parseError;
+                const QJsonDocument document = QJsonDocument::fromJson(strippedBytes, &parseError);
+                if (parseError.error != QJsonParseError::NoError) {
+                    nextConfigError = QStringLiteral("Invalid JSON in %1 at offset %2: %3")
+                        .arg(m_userConfigPath)
+                        .arg(parseError.offset)
+                        .arg(parseError.errorString());
+                } else if (!document.isObject()) {
+                    nextConfigError = QStringLiteral("Invalid JSON in %1: root value must be an object").arg(m_userConfigPath);
+                } else {
+                    configObject = document.object();
+                }
+            }
+        }
+    }
+
+    updateField(this, m_configError, nextConfigError, &UserConfigBackend::configErrorChanged);
+    // Keep the last usable lock appearance if an external edit is incomplete.
+    if (nextConfigError.isEmpty() || m_lockScreen.isEmpty())
+        updateField(this, m_lockScreen, LockScreenConfig::normalized(configObject.value("lockScreen").toObject()), &UserConfigBackend::lockScreenChanged);
+
+    updateField(this, m_wallpaperPath, jsonString(configObject, QLatin1String("wallpaperPath"), m_defaultWallpaperPath), &UserConfigBackend::wallpaperPathChanged);
+    updateField(this, m_wallpaperLibraryPath, jsonString(configObject, QLatin1String("wallpaperLibraryPath"), QString()), &UserConfigBackend::wallpaperLibraryPathChanged);
+    updateField(this, m_wallpaperPywalEnabled, jsonBool(configObject, QLatin1String("wallpaperPywalEnabled"), false), &UserConfigBackend::wallpaperPywalEnabledChanged);
+    updateField(this, m_wallpaperCustomCommandEnabled, jsonBool(configObject, QLatin1String("wallpaperCustomCommandEnabled"), false), &UserConfigBackend::wallpaperCustomCommandEnabledChanged);
+    updateField(this, m_wallpaperCustomCommand, jsonString(configObject, QLatin1String("wallpaperCustomCommand"), QString()), &UserConfigBackend::wallpaperCustomCommandChanged);
+    updateField(this, m_wallpaperTransitionType, jsonString(configObject, QLatin1String("wallpaperTransitionType"), QStringLiteral("center")), &UserConfigBackend::wallpaperTransitionTypeChanged);
+    updateField(this, m_wallpaperTransitionStep, jsonInt(configObject, QLatin1String("wallpaperTransitionStep"), 5), &UserConfigBackend::wallpaperTransitionStepChanged);
+    updateField(this, m_wallpaperTransitionDuration, jsonDouble(configObject, QLatin1String("wallpaperTransitionDuration"), 3.0), &UserConfigBackend::wallpaperTransitionDurationChanged);
+    updateField(this, m_wallpaperTransitionFps, jsonInt(configObject, QLatin1String("wallpaperTransitionFps"), 60), &UserConfigBackend::wallpaperTransitionFpsChanged);
+    updateField(this, m_wallpaperTransitionAngle, jsonInt(configObject, QLatin1String("wallpaperTransitionAngle"), 45), &UserConfigBackend::wallpaperTransitionAngleChanged);
+    updateField(this, m_wallpaperTransitionPosition, jsonString(configObject, QLatin1String("wallpaperTransitionPosition"), QStringLiteral("center")), &UserConfigBackend::wallpaperTransitionPositionChanged);
+    updateField(this, m_wallpaperTransitionBezier, jsonString(configObject, QLatin1String("wallpaperTransitionBezier"), QStringLiteral(".54,0,.34,.99")), &UserConfigBackend::wallpaperTransitionBezierChanged);
+    updateField(this, m_wallpaperTransitionWave, jsonString(configObject, QLatin1String("wallpaperTransitionWave"), QStringLiteral("20,20")), &UserConfigBackend::wallpaperTransitionWaveChanged);
+    updateField(this, m_wallpaperTransitionInvertY, jsonBool(configObject, QLatin1String("wallpaperTransitionInvertY"), false), &UserConfigBackend::wallpaperTransitionInvertYChanged);
+    updateField(this, m_iconFontFamily, jsonString(configObject, QLatin1String("iconFontFamily"), QStringLiteral("JetBrainsMono Nerd Font")), &UserConfigBackend::iconFontFamilyChanged);
+    updateField(this, m_textFontFamily, jsonString(configObject, QLatin1String("textFontFamily"), QStringLiteral("Sans Serif")), &UserConfigBackend::textFontFamilyChanged);
+    updateField(this, m_heroFontFamily, jsonString(configObject, QLatin1String("heroFontFamily"), QStringLiteral("Sans Serif")), &UserConfigBackend::heroFontFamilyChanged);
+    updateField(this, m_timeFontFamily, jsonString(configObject, QLatin1String("timeFontFamily"), QStringLiteral("Sans Serif")), &UserConfigBackend::timeFontFamilyChanged);
+    const QString configuredClockFormat = jsonString(configObject, QLatin1String("clockFormat"), QStringLiteral("12"));
+    updateField(this, m_clockFormat, configuredClockFormat == QLatin1String("24") ? QStringLiteral("24") : QStringLiteral("12"), &UserConfigBackend::clockFormatChanged);
+    updateField(this, m_tlpSudoPassword, jsonString(configObject, QLatin1String("tlpSudoPassword"), m_defaultTlpSudoPassword), &UserConfigBackend::tlpSudoPasswordChanged);
+    updateField(this, m_tlpPermissionMode, jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("skip")), &UserConfigBackend::tlpPermissionModeChanged);
+    updateField(this, m_powerProfileDriver, jsonString(configObject, QLatin1String("powerProfileDriver"), QStringLiteral("auto")), &UserConfigBackend::powerProfileDriverChanged);
+    updateField(this, m_workspaceOverviewWindowDragButton, jsonInt(configObject, QLatin1String("workspaceOverviewWindowDragButton"), 1), &UserConfigBackend::workspaceOverviewWindowDragButtonChanged);
+    updateField(this, m_dynamicIslandPrimaryButton, jsonInt(configObject, QLatin1String("dynamicIslandPrimaryButton"), 1), &UserConfigBackend::dynamicIslandPrimaryButtonChanged);
+    updateField(this, m_dynamicIslandPrimaryAction, jsonString(configObject, QLatin1String("dynamicIslandPrimaryAction"), QStringLiteral("toggleExpandedPlayer")), &UserConfigBackend::dynamicIslandPrimaryActionChanged);
+    updateField(this, m_dynamicIslandSecondaryButton, jsonInt(configObject, QLatin1String("dynamicIslandSecondaryButton"), 3), &UserConfigBackend::dynamicIslandSecondaryButtonChanged);
+    updateField(this, m_islandShowWorkspaceOnAutoHide, jsonBool(configObject, QLatin1String("islandShowWorkspaceOnAutoHide"), true), &UserConfigBackend::islandShowWorkspaceOnAutoHideChanged);
+    updateField(this, m_dynamicIslandSecondaryAction, jsonString(configObject, QLatin1String("dynamicIslandSecondaryAction"), QStringLiteral("toggleControlCenter")), &UserConfigBackend::dynamicIslandSecondaryActionChanged);
+    updateField(this, m_dynamicIslandMiddleButton, jsonInt(configObject, QLatin1String("dynamicIslandMiddleButton"), 2), &UserConfigBackend::dynamicIslandMiddleButtonChanged);
+    updateField(this, m_dynamicIslandMiddleAction, jsonString(configObject, QLatin1String("dynamicIslandMiddleAction"), QStringLiteral("toggleClipboard")), &UserConfigBackend::dynamicIslandMiddleActionChanged);
+    updateField(this, m_dynamicIslandLeftSwipeItems, jsonArray(configObject, QLatin1String("dynamicIslandLeftSwipeItems"), defaultDynamicIslandLeftSwipeItems()), &UserConfigBackend::dynamicIslandLeftSwipeItemsChanged);
+    updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), false), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
+    updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
+    updateField(this, m_islandAutoHideEnabled, jsonBool(configObject, QLatin1String("islandAutoHideEnabled"), true), &UserConfigBackend::islandAutoHideEnabledChanged);
+    updateField(this, m_islandAutoHideDelayMs, jsonBoundedInt(configObject, QLatin1String("islandAutoHideDelayMs"), 1000, 100, 10000), &UserConfigBackend::islandAutoHideDelayMsChanged);
+    updateField(this, m_islandWidth, jsonInt(configObject, QLatin1String("islandWidth"), 140), &UserConfigBackend::islandWidthChanged);
+    updateField(this, m_islandBackgroundOpacity, jsonBoundedInt(configObject, QLatin1String("islandBackgroundOpacity"), 60, 0, 100), &UserConfigBackend::islandBackgroundOpacityChanged);
+    updateField(this, m_islandBlurEnabled, jsonBool(configObject, QLatin1String("islandBlurEnabled"), true), &UserConfigBackend::islandBlurEnabledChanged);
+    updateField(this, m_islandHeight, jsonInt(configObject, QLatin1String("islandHeight"), 38), &UserConfigBackend::islandHeightChanged);
+    updateField(this, m_islandExclusiveZone, jsonBoundedInt(configObject, QLatin1String("islandExclusiveZone"), 45, 0, 1000), &UserConfigBackend::islandExclusiveZoneChanged);
+    updateField(this, m_islandTopMargin, jsonBoundedInt(configObject, QLatin1String("islandTopMargin"), 4, 0, 1000), &UserConfigBackend::islandTopMarginChanged);
+    updateField(this, m_islandPositionX, jsonInt(configObject, QLatin1String("islandPositionX"), 50), &UserConfigBackend::islandPositionXChanged);
+    updateField(this, m_bodyFontSize, jsonInt(configObject, QLatin1String("bodyFontSize"), 16), &UserConfigBackend::bodyFontSizeChanged);
+    updateField(this, m_titleFontSize, jsonInt(configObject, QLatin1String("titleFontSize"), 20), &UserConfigBackend::titleFontSizeChanged);
+    updateField(this, m_iconFontSize, jsonInt(configObject, QLatin1String("iconFontSize"), 18), &UserConfigBackend::iconFontSizeChanged);
+    updateField(this, m_weatherEnabled, jsonBool(configObject, QLatin1String("weatherEnabled"), true), &UserConfigBackend::weatherEnabledChanged);
+    updateField(this, m_weatherLocation, jsonString(configObject, QLatin1String("weatherLocation"), QString()), &UserConfigBackend::weatherLocationChanged);
+    updateField(this, m_weatherUnits, jsonString(configObject, QLatin1String("weatherUnits"), QStringLiteral("metric")), &UserConfigBackend::weatherUnitsChanged);
+    updateField(this, m_weatherRefreshInterval, jsonBoundedInt(configObject, QLatin1String("weatherRefreshInterval"), 1800000, 60000, 86400000), &UserConfigBackend::weatherRefreshIntervalChanged);
+
+    updateWatchedPaths();
+}
+
+void UserConfigBackend::updateWatchedPaths()
+{
+    const QString configDirectory = QFileInfo(m_userConfigPath).absolutePath();
+    const QString configParentDirectory = QFileInfo(configDirectory).absolutePath();
+    const QSet<QString> wantedFiles = QFileInfo::exists(m_userConfigPath)
+        ? QSet<QString>{m_userConfigPath}
+        : QSet<QString>{};
+    QSet<QString> wantedDirectories;
+    if (QFileInfo::exists(configParentDirectory))
+        wantedDirectories.insert(configParentDirectory);
+    if (QFileInfo::exists(configDirectory))
+        wantedDirectories.insert(configDirectory);
+
+    const QStringList currentFiles = m_watcher.files();
+    for (const QString &path : currentFiles) {
+        if (!wantedFiles.contains(path))
+            m_watcher.removePath(path);
+    }
+
+    const QStringList currentDirectories = m_watcher.directories();
+    for (const QString &path : currentDirectories) {
+        if (!wantedDirectories.contains(path))
+            m_watcher.removePath(path);
+    }
+
+    for (const QString &path : wantedFiles) {
+        if (!m_watcher.files().contains(path))
+            m_watcher.addPath(path);
+    }
+
+    for (const QString &path : wantedDirectories) {
+        if (!m_watcher.directories().contains(path))
+            m_watcher.addPath(path);
+    }
+}
+
+QString UserConfigBackend::configHome() const
+{
+    const QByteArray xdgConfigHome = qgetenv("XDG_CONFIG_HOME");
+    if (!xdgConfigHome.isEmpty())
+        return QString::fromLocal8Bit(xdgConfigHome);
+
+    const QByteArray home = qgetenv("HOME");
+    return home.isEmpty()
+        ? QStringLiteral(".")
+        : QString::fromLocal8Bit(home) + QStringLiteral("/.config");
+}

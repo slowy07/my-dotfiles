@@ -7,12 +7,12 @@ import qs
 import qs.components
 import qs.services
 
-// блокировка: часы Doto на всю ширину, дата и погода метками, по углам раскладка/сеть/батарея и счёт уведомлений.
-// Внизу аватар в кольце точек, имя и поле-пилюля: введённое — белые точки, каретка красная. Неверный пароль — всё красное, поле трясётся
+// lock screen: Doto clock across the full width, date and weather as labels, layout/network/battery and unread count in the corners.
+// At the bottom an avatar in a ring of dots, the name and a pill field: typed input is white dots, the caret is red. Wrong password makes everything red and the field shakes
 WlSessionLockSurface {
     id: root
 
-    required property var auth // { buffer, fail, busy, leaving, submit() } из lock.qml
+    required property var auth // from lock.qml
     property string layout: "en"
 
     color: Theme.bg
@@ -23,13 +23,13 @@ WlSessionLockSurface {
     property bool blink: true
     Timer { running: true; interval: 500; repeat: true; onTriggered: root.blink = !root.blink }
 
-    // появление: t 0→1 линейно, у каждого элемента своя фаза с ease-out-quart (как glide): шар и часы, метки, аватар —
-    // кольцо загорается волной, поле вырастает из точки. Пароль принят (auth.leaving) — t назад и быстрее, лок снимает lock.qml
+    // appearance: t goes 0 to 1 linearly, each element has its own phase with ease-out-quart (like glide): orb and clock, labels, avatar,
+    // the ring lights in a wave, the field grows from a point. Password accepted (auth.leaving) sends t back faster, lock.qml releases the lock
     property real t: 0
     Behavior on t { NumberAnimation { duration: root.auth.leaving ? 450 : 1100 } }
     Component.onCompleted: t = Qt.binding(() => root.auth.leaving ? 0 : 1)
     function ph(a, b) { const x = Math.max(0, Math.min(1, (t - a) / (b - a))); return 1 - Math.pow(1 - x, 4); }
-    // проверка пароля: по введённым точкам бежит волна
+    // password check: a wave runs over the typed dots
     property real wave: 0
     NumberAnimation on wave { running: root.auth.busy; from: 0; to: 1; duration: 700; loops: Animation.Infinite }
 
@@ -118,8 +118,8 @@ WlSessionLockSurface {
                 height: 96
                 opacity: root.ph(0.3, 0.7)
                 transform: Translate { y: 24 * (1 - root.ph(0.3, 0.7)) }
-                Ring { anchors.fill: parent; n: 32; f: root.t > 0.35 ? 1 : 0 } // загорается и гаснет волной по кругу
-                // ~/.face точками, как обложки; нет файла — градиент Art
+                Ring { anchors.fill: parent; n: 32; f: root.t > 0.35 ? 1 : 0 } // lights and fades in a wave around the circle
+                // ~/.face as dots, like covers; without the file, the Art gradient
                 Art { anchors { fill: parent; margins: 18 } url: `file://${Quickshell.env("HOME")}/.face`; step: 3 }
             }
             Text {
@@ -131,11 +131,11 @@ WlSessionLockSurface {
                 transform: Translate { y: 16 * (1 - root.ph(0.4, 0.75)) }
             }
 
-            // поле: введённые — точки, после каретки — погасшие до шести
+            // field: typed input is dots, after the caret dimmed dots up to six
             Rectangle {
                 id: pwd
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: 58 + (380 - 58) * root.ph(0.5, 0.9) // вырастает из точки в пилюлю
+                width: 58 + (380 - 58) * root.ph(0.5, 0.9) // grows from a point into a pill
                 height: 58
                 radius: 29
                 opacity: root.ph(0.45, 0.6)
@@ -149,7 +149,7 @@ WlSessionLockSurface {
                     Repeater {
                         id: typed
                         model: Math.min(root.auth.buffer.length, 16)
-                        // новая точка выщёлкивается; пока pam думает — по точкам бежит волна
+                        // a new dot clicks in; while pam is thinking, a wave runs over the dots
                         Rectangle {
                             required property int index
                             anchors.verticalCenter: parent.verticalCenter

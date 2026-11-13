@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import qs
 
-// обложка трека точками в круге; нет обложки — конический градиент из концепта
+// track cover as dots in a circle; without a cover, a conic gradient from the concept
 Item {
     id: root
 

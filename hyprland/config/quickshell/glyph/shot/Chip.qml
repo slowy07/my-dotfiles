@@ -2,7 +2,7 @@ import QtQuick
 import qs
 import qs.components
 
-// чип, как режимы в лаунчере: вкл. — белая пилюля и чёрный текст, выкл. — серый текст
+// chip, like the launcher modes: on is a white pill with black text, off is grey text
 Rectangle {
     property alias text: lb.text
     property bool on

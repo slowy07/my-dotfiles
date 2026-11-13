@@ -9,8 +9,8 @@ import qs.components
 import qs.settings
 import qs.services
 
-// быстрые настройки: Super+A или клик по трею. Панель 470 у правого края, прижата к низу, выезжает справа: часы, пилюли Wi-Fi/Bluetooth,
-// круглые плитки, слайдеры (залитое — белая пилюля, пустое — точки), мини-плеер, уведомления. Окна за ней гаснут на 35%
+// quick settings: Super+A or a click on the tray. A 470 panel at the right edge, anchored to the bottom, slides in from the right: clock, Wi-Fi/Bluetooth pills,
+// round tiles, sliders (filled part is a white pill, empty part is dots), mini player, notifications. Windows behind it dim to 35%
 PanelWindow {
     id: root
 
@@ -18,22 +18,22 @@ PanelWindow {
     signal settingsRequested
 
     property bool open: false
-    // peeked — открыта наведением на правый край (Hot): клавиатуру не забирает, курсор ушёл с панели — закрывается сама
+    // peeked: opened by hovering the right edge (Hot); it does not take keyboard focus and closes itself when the cursor leaves the panel
     property bool peeked: false
     function toggle() { peeked = false; open = !open; }
     function close() { open = false; }
-    // клик внутри — панель приколота: дальше закрывается как обычно (esc, мимо), наведение её больше не решает
+    // a click inside pins the panel: it then closes as usual (esc, click outside), and hovering no longer controls it
     function pin() { peeked = false; }
     function peek() {
         if (open) return;
         peeked = true;
         open = true;
     }
-    // открытый список: "wifi" | "bt" — под пилюлями (Picker), "rec" — под плитками (Rec), "" — ничего
+    // open list: "wifi" | "bt" below the pills (Picker), "rec" below the tiles (Rec), "" for none
     property string pick: ""
     onOpenChanged: if (open) Sys.earRun([]); else pick = ""
-    // курсор 500мс вне панели и полосы Hot — закрываем. seen: Hyprland не отдаёт курсор свежей поверхности, пока мышь не сдвинется —
-    // до первого движения неизвестно, где он, и панель ждёт (иначе у неподвижного курсора открывалась и тут же закрывалась)
+    // close when the cursor is outside the panel and the Hot strip for 500 ms. seen: Hyprland does not report the cursor to a fresh surface until the mouse moves;
+    // before the first movement its position is unknown, so the panel waits (otherwise it would open and immediately close with a still cursor)
     Timer { interval: 500; running: root.open && root.peeked && seen.hovered && !keep.hovered && !edge.hovered; onTriggered: root.close() }
 
     property real t: open ? 1 : 0
@@ -63,9 +63,9 @@ PanelWindow {
     Stage {
         id: stage
         HoverHandler { id: seen }
-        // зона наведения: панель и полоса до края экрана — курсор у самого края не считается «ушёл», иначе она закрылась бы
-        // и тут же открылась. Панель внутри зоны, а не соседом: HoverHandler кнопки (клетки режимов, строки Picker) гасит
-        // наведение соседа под собой, а предка — нет
+        // hover zone: the panel and the strip to the screen edge; a cursor at the very edge does not count as gone, otherwise it would close
+        // and immediately reopen. The panel is inside the zone rather than a sibling: a button HoverHandler (mode cells, Picker rows) cancels
+        // hover on the sibling below it, but not on the ancestor
         Item {
             anchors { right: parent.right; bottom: parent.bottom }
             width: panel.width + panel.anchors.rightMargin
@@ -82,7 +82,7 @@ PanelWindow {
                 border { width: 1; color: Theme.s2 }
                 focus: true
                 Keys.onEscapePressed: root.close()
-                MouseArea { anchors.fill: parent } // клик по панели не закрывает
+                MouseArea { anchors.fill: parent } // clicking the panel does not close it
 
                 Column {
                     id: col
@@ -104,7 +104,7 @@ PanelWindow {
                         Row {
                             anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
                             spacing: 14
-                            Round { icon: "\u{F0493}"; onClicked: { root.close(); root.settingsRequested(); } } // настройки; шеллы — в их SHELL
+                            Round { icon: "\u{F0493}"; onClicked: { root.close(); root.settingsRequested(); } } // settings; shells live in their SHELL
                             Round { icon: "\u{F0425}"; onClicked: { root.close(); root.powerRequested(); } }
                         }
                     }
@@ -134,7 +134,7 @@ PanelWindow {
 
                     Picker { width: parent.width; kind: root.pick; onTouched: root.pin() }
 
-                    // наушники Nothing / CMF (Sys.ear): имя и заряд, под ними шумодав — клетки как у режимов питания
+                    // Nothing / CMF earbuds (Sys.ear): name and charge, with noise control below, cells like power modes
                     Column {
                         visible: !!Sys.ear
                         width: parent.width
@@ -204,9 +204,9 @@ PanelWindow {
                     Slider { icon: "\u{F00E0}"; visible: Sys.hasBri; value: Sys.bri; onMoved: v => Sys.setBri(v) }
                     Slider { icon: Sys.muted ? "\u{F075F}" : "\u{F057E}"; value: Sys.muted ? 0 : Sys.vol; onMoved: v => Sys.setVol(v) }
 
-                    // режим питания, как в caelestia: четыре клетки, белая заливка переезжает к выбранной; засечки — сила.
-                    // ultra — ещё 60 Гц и без анимаций, blur и теней (Rules.modes)
-                    // справа — игровой режим, как в caelestia (Rules.store.game): без анимаций, blur, теней и зазоров, tearing
+                    // power mode as in caelestia: four cells, white fill moves to the selection; ticks show the level.
+                    // ultra also uses 60 Hz with no animations, blur or shadows (Rules.modes)
+                    // on the right, game mode as in caelestia (Rules.store.game): no animations, blur, shadows or gaps, tearing
                     Row {
                         width: parent.width
                         spacing: 12
@@ -273,7 +273,7 @@ PanelWindow {
                         }
                     }
 
-                    // мини-плеер
+                    // mini player
                     Rectangle {
                         visible: !!Media.player
                         width: parent.width
@@ -303,7 +303,7 @@ PanelWindow {
                         }
                     }
 
-                    // карточки уведомлений, свежие сверху; не влезли — листаются
+                    // notification cards, newest first; overflow is scrollable
                     ListView {
                         id: notes
                         width: parent.width
@@ -362,8 +362,8 @@ PanelWindow {
                                     color: Theme.grey
                                 }
                             }
-                            // клик — действие по умолчанию (если есть) и убрать. invoke() сам закрывает уведомление, а с ним
-                            // и эту карточку — дальше только через свою ссылку, и dismiss, лишь если ещё живо
+                            // click performs the default action (if any) and dismisses. invoke() closes the notification itself, and with it
+                            // this card, so continue only through the local reference, and dismiss only if it is still alive
                             TapHandler {
                                 onTapped: {
                                     root.pin();
@@ -378,7 +378,7 @@ PanelWindow {
             }
         }
     }
-    // полоса Hot: панель ложится поверх неё, курсор на ней держит панель, как и сама панель
+    // Hot strip: the panel lies over it; the cursor on it keeps the panel open, as does the panel itself
     Item {
         anchors { right: parent.right; bottom: parent.bottom }
         width: 2
@@ -386,7 +386,7 @@ PanelWindow {
         HoverHandler { id: edge }
     }
 
-    // круглая кнопка в шапке
+    // round button in the header
     component Round: Rectangle {
         property string icon
         signal clicked
@@ -397,7 +397,7 @@ PanelWindow {
         Icon { anchors.centerIn: parent; text: parent.icon }
         TapHandler { onTapped: { root.pin(); parent.clicked(); } }
     }
-    // пилюля: вкл — белая, текст чёрный. Правый клик — список сетей/устройств, шеврон показывает, открыт ли
+    // pill: on is white with black text. Right click opens the network/device list; the chevron shows whether it is open
     component Pill: Rectangle {
         id: pill
         property bool on
@@ -447,7 +447,7 @@ PanelWindow {
         TapHandler { onTapped: { root.pin(); pill.clicked(); } }
         TapHandler { acceptedButtons: Qt.RightButton; onTapped: { root.pin(); pill.menu(); } }
     }
-    // круглая плитка 68: вкл — белый круг. Правый клик — menu (у record — настройки записи), открыто — подпись белая
+    // 68 round tile: on is a white circle. Right click opens menu (record opens recording settings); when open, the label is white
     component Tile: Column {
         id: tile
         property bool on
@@ -471,7 +471,7 @@ PanelWindow {
         }
         Lb { anchors.horizontalCenter: parent.horizontalCenter; text: tile.name; px: 10; color: tile.picked ? Theme.fg : Theme.grey }
     }
-    // слайдер: залитая часть — белая пилюля с иконкой, пустая — ряд точек
+    // slider: filled part is a white pill with an icon, empty part is a row of dots
     component Slider: Rectangle {
         id: sl
         property real value
@@ -482,7 +482,7 @@ PanelWindow {
         height: 54
         radius: 27
         color: Theme.s2
-        // пустая часть — точки шагом 11. Не svg-плиткой: она растрируется в 11px и мылится масштабом холста
+        // empty part is dots at 11 px spacing. Not an svg tile: it rasterizes to 11 px and blurs when the canvas is scaled
         Row {
             x: 10
             anchors.verticalCenter: parent.verticalCenter

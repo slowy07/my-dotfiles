@@ -7,8 +7,10 @@ This directory contains the Hyprland desktop configuration used on this system. 
 | Path | Purpose |
 |---|---|
 | `config/hypr` | Hyprland configuration written in Lua. Includes window rules, key bindings, input, decorations, animations, and color scheme tables. |
-| `config/quickshell/glyph` | Glyph Quickshell shell. Provides the bar, launcher, settings menu, lock screen, notifications, and the color scheme picker. |
+| `config/quickshell/glyph` | Glyph Quickshell shell. Provides the bar, launcher, settings menu, lock screen, and the color scheme picker. It also contains the vendored Tide island for the clock, player, calendar, and notification center. |
 | `config/quickshell/rice` | Shell launcher script used by Hyprland to start the selected Quickshell shell. |
+| `config/tide-island` | Island geometry and click mapping for the Tide island. |
+| `config/quickshell/glyph/Notes.qml` | Notification service. The Glyph Quickshell process owns `org.freedesktop.Notifications` and keeps the notification history. |
 | `config/kitty` | kitty terminal configuration. Contains the font, padding, tab style, animations, and key maps. Ends with an include for the generated color file. |
 | `config/demonshot` | Runtime configuration written by the shell. Contains the generated kitty palette, hypridle configuration, and shell rules. |
 | `config/qtengine` | Qt platform theme configuration. |
@@ -22,6 +24,8 @@ Arch Linux is the supported platform. The configuration expects the following pa
 |---|---|
 | Session | `hyprland`, `hypridle`, `hyprsunset`, `hyprpicker`, `xdg-desktop-portal-hyprland`, `xdg-desktop-portal-gtk` |
 | Shell | `quickshell`, `polkit-gnome`, `gnome-keyring`, `geoclue`, `upower`, `jq`, `curl`, `python`, `libqalculate` |
+| Island build | `cmake`, `ninja`, `qt6-base`, `qt6-declarative`, `systemd-libs` |
+| Notifications | `libnotify` |
 | Audio and network | `pipewire`, `pipewire-pulse`, `pipewire-alsa`, `wireplumber`, `networkmanager`, `bluez`, `bluez-utils`, `power-profiles-daemon` |
 | Utilities | `brightnessctl`, `playerctl`, `wl-clipboard`, `cliphist`, `grim`, `slurp`, `swappy`, `imagemagick`, `libvips`, `gpu-screen-recorder`, `ydotool`, `libnotify`, `trash-cli` |
 | Terminal | `kitty`, `fish`, `starship`, `fastfetch`, `btop`, `cava`, `eza`, `zoxide`, `direnv` |
@@ -46,7 +50,7 @@ Several packages are available only from the AUR: `qtengine`, `darkly-bin`, `bib
    ```sh
    backup="$HOME/.dots-backup-$(date +%F_%H-%M-%S)"
    mkdir -p "$backup/.config"
-   for path in hypr kitty quickshell qtengine demonshot; do
+   for path in hypr kitty quickshell qtengine demonshot tide-island; do
        if [ -e "$HOME/.config/$path" ] || [ -L "$HOME/.config/$path" ]; then
            mv "$HOME/.config/$path" "$backup/.config/"
        fi
@@ -76,7 +80,29 @@ Several packages are available only from the AUR: `qtengine`, `darkly-bin`, `bib
    printf 'glyph\n' > "$HOME/.local/state/rice/shell"
    ```
 
-6. Log out of the current session and select Hyprland at the display manager.
+6. Build and install the Tide Island backend plugin. The QML tree needs the
+   compiled `IslandBackend` plugin at a system Qt QML path.
+
+   ```sh
+   cmake -S hyprland/config/quickshell/glyph/tide \
+     -B "${XDG_CACHE_HOME:-$HOME/.cache}/glyph/tide-build" -G Ninja \
+     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+   cmake --build "${XDG_CACHE_HOME:-$HOME/.cache}/glyph/tide-build"
+   sudo cmake --install "${XDG_CACHE_HOME:-$HOME/.cache}/glyph/tide-build"
+   ```
+
+   Rebuild after a Qt ABI change. Details are in
+   `config/quickshell/glyph/tide/NOTICE.md`.
+
+7. Disable the old notification daemon so the Glyph notification server can
+   own the notification bus.
+
+   ```sh
+   systemctl --user mask dunst.service
+   rm -rf "$HOME/.config/dunst"
+   ```
+
+8. Log out of the current session and select Hyprland at the display manager.
 
 The shell starts automatically through `config/hypr/hyprland/execs.lua`. On first start it creates `~/.config/demonshot/kitty.conf`, `~/.config/demonshot/hypridle.conf`, and `~/.config/demonshot/rules.json`. It also links the terminal configuration files from `config/quickshell/glyph/term` into `~/.config`.
 

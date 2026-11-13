@@ -5,8 +5,8 @@ import qs
 import qs.components
 import "charms.js" as Data
 
-// чары: каомодзи, эмодзи и символы. Панель из семьи буфера: поиск-пилюля, вкладки чипами (Tab),
-// слева сетка плиток, справа выбранное крупно. Выбранная плитка — белая. ⏎ — в буфер, вставляешь сам Ctrl+V
+// charms: kaomoji, emoji and symbols. A panel in the clipboard family: a search pill, chips as tabs (Tab),
+// a tile grid on the left, the selection large on the right. The selected tile is white. Enter copies to the clipboard, you paste with Ctrl+V yourself
 PanelWindow {
     id: root
 
@@ -14,12 +14,12 @@ PanelWindow {
     readonly property var cols: [2, 8, 8]
     property int tab: 0
     property int sel: 0
-    // ё → е: в словах CLDR «черный», а пишут и так и так
+    // normalize Cyrillic yo to ye: CLDR words use the ye spelling, but people write both ways
     readonly property string query: input.text.toLowerCase().replace(/ё/g, "е")
 
     readonly property var lists: [Data.KAOMOJI, Data.EMOJI, Data.SYMBOLS]
-    // слова в charms.js уже строчные — без toLowerCase и деструктуризации: по 1900 эмодзи это кадр на каждую букву.
-    // Сам символ («Ω», «Ψ») — строчными, но только если слова не совпали
+    // words in charms.js are already lowercase, so no toLowerCase or destructuring: across 1900 emoji that costs a frame per keystroke.
+    // The symbol itself ("Ω", "Ψ") is lowercased, but only when no words matched
     readonly property var view: query ? lists[tab].filter(e => e[1].includes(query) || e[0].toLowerCase().includes(query)) : lists[tab]
     readonly property var cur: view[sel] ?? null
 
@@ -107,7 +107,7 @@ PanelWindow {
                         font: input.font
                         color: Theme.mute
                     }
-                    // ponytail: ←→ ходят по сетке, а не по тексту — запросы тут в одно слово
+                    // ponytail: left/right move across the grid rather than the text; queries here are a single word
                     Keys.onPressed: e => {
                         const n = root.cols[root.tab];
                         if (e.key === Qt.Key_Escape) root.close();
@@ -151,8 +151,8 @@ PanelWindow {
                 Lb { id: hlab; text: root.tabs[root.tab] }
             }
 
-            // по сетке на вкладку, живут все три: Tab только прячет — пересборка плиток стоила кадры. Без запроса у всех
-            // полный список и от tab модели не зависят; поиск фильтрует только видимую
+            // one grid per tab, all three stay alive: Tab only hides them because rebuilding tiles cost frames. Without a query all
+            // have the full list and do not depend on the tab model; search filters only the visible one
             Item {
                 id: grid
                 anchors { left: parent.left; leftMargin: 34; top: head.bottom; topMargin: 18; bottom: parent.bottom; bottomMargin: 34 }
@@ -184,8 +184,8 @@ PanelWindow {
                                 anchors { fill: parent; margins: 3 }
                                 radius: Math.min(width, height) / 2
                                 color: d.on ? Theme.fg : Theme.s2
-                                // Fit — лишние раскладки на каждой плитке; нужен длинным каомодзи и ZWJ-эмодзи: шрифт постарше
-                                // не склеит последовательность, и она развалится на 2–4 глифа шире клетки
+                                // Fit adds extra layouts to every tile; it is needed for long kaomoji and ZWJ emoji since an older font
+                                // will not join the sequence and it breaks into 2 to 4 glyphs wider than the cell
                                 Text {
                                     anchors { fill: parent; margins: 8 }
                                     text: d.modelData[0]
@@ -198,7 +198,7 @@ PanelWindow {
                                     color: d.on ? Theme.ink : Theme.fg
                                 }
                             }
-                            // клик — выбрать, по выбранной — скопировать
+                            // click selects; clicking the selected tile copies
                             TapHandler { onTapped: d.on ? root.fire() : root.sel = d.index }
                             HoverHandler { cursorShape: Qt.PointingHandCursor }
                         }
@@ -206,7 +206,7 @@ PanelWindow {
                 }
             }
 
-            // выбранное крупно
+            // the selection, large
             Rectangle {
                 id: card
                 anchors { left: grid.right; leftMargin: 24; right: parent.right; rightMargin: 34; top: head.top; bottom: parent.bottom; bottomMargin: 34 }

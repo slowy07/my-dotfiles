@@ -1,22 +1,23 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Networking
 import Quickshell.Services.Notifications
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs
 import qs.components
 
-// Glyph: края экрана как светодиоды на спинке, вместо OSD и попапов посреди экрана.
-// Сверху — вспышка на уведомление (у критических красная) и «остров» с ним, справа — громкость/яркость снизу вверх,
-// снизу — прогресс долгих задач (уведомления с hint value) или фокус-таймера (Focus). Гаснут через 3 с
+// Glyph: screen edges as LEDs on the back, instead of OSDs and popups in the middle of the screen.
+// On top, a flash for power and network events (red for critical); on the right, volume/brightness bottom to top;
+// on the bottom, progress of long tasks (notifications with a hint value) or the focus timer (Focus). They fade after 3 s
 Scope {
     id: root
 
-    // ---- справа: громкость и яркость ----
+    // ---- right: volume and brightness ----
     property string kind: "vol"
     property real value: 0
-    property bool armed: false // первые значения при старте не показываем
+    property bool armed: false // do not show initial values at startup
     Timer { running: true; interval: 1500; onTriggered: root.armed = true }
     function level(k, v) {
         if (!armed || !Theme.state.edges) return;
@@ -36,35 +37,22 @@ Scope {
     }
     Timer { id: sideT; interval: 3000; onTriggered: side.shown = false }
 
-    // ---- сверху: новое уведомление — вспышка полосы и плашка в стопку острова ----
-    property var note: null // последнее, для вспышки
-    // стопка: снимки полей (уведомление могут закрыть, пока плашка уходит — объекта уже не будет), сам объект — в refs ради действия
-    ListModel { id: stack }
-    property var refs: ({})
-    property int seq: 0
-    readonly property int most: 4
-    // плашка в стопку: c — { app, summary, body, icon (тема иконок), glyph (nerd font), crit }; ref — уведомление, ради действия
-    function push(c, ref) {
+    // ---- top: power and network events flash the strip ----
+    property var note: null // latest, for the flash
+    signal eventHappened(string app, string summary, string body)
+    // card for the flash: c is { crit }, the top strip only needs the urgency
+    function push(c) {
         root.note = { urgency: c.crit ? NotificationUrgency.Critical : NotificationUrgency.Normal };
+        root.eventHappened(c.app ?? "", c.summary ?? "", c.body ?? "");
         noteT.restart();
-        const key = String(++root.seq);
-        if (ref) root.refs[key] = ref;
-        stack.insert(0, Object.assign({ key, app: "", summary: "", body: "", icon: "", glyph: "", crit: false, leaving: false }, c));
-        // больше most — старейшая из живых уходит
-        let live = 0;
-        for (let i = 0; i < stack.count; i++) if (!stack.get(i).leaving && ++live > root.most) stack.setProperty(i, "leaving", true);
     }
-    Connections {
-        target: Notes
-        function onArrived(n) {
-            root.push({ app: n.appName || "app", summary: n.summary ?? "", body: n.body ?? "", icon: n.appIcon ?? "",
-                        crit: n.urgency === NotificationUrgency.Critical }, n);
-        }
-    }
+    // The Tide island is the notification presenter; the top edge stays for
+    // power and network events only.
 
-    // ---- питание: зарядку включили/выдернули, зарядилась, садится (15% — предупредить, 5% — красным). Плашкой в остров,
-    // мимо истории уведомлений. armed — не на старте ----
+    // ---- power: charger plugged/unplugged, charged, discharging (warn at 15%, red at 5%). As a card in the island,
+    // bypassing notification history. armed prevents startup events ----
     readonly property var bat: UPower.displayDevice
+    readonly property var wifi: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
     readonly property int pct: Math.round((bat?.percentage ?? 0) * 100)
     property int warned: 100
     function hm(s) { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`; }
@@ -88,10 +76,13 @@ Scope {
             else if (root.pct <= 15 && root.warned > 15) { root.warned = 15; root.power("Battery low", "\u{F0083}", false, "plug in soon"); }
         }
     }
-    function dismiss(key) { for (let i = 0; i < stack.count; i++) if (stack.get(i).key === key) return stack.setProperty(i, "leaving", true); }
-    function forget(key) {
-        delete refs[key];
-        for (let i = 0; i < stack.count; i++) if (stack.get(i).key === key) return stack.remove(i);
+    // network: a Wi-Fi device that was connected and is no longer. armed prevents startup events
+    Connections {
+        target: root.wifi
+        function onConnectedChanged() {
+            if (root.armed && root.wifi && !root.wifi.connected)
+                root.push({ app: "network", summary: "Wi-Fi disconnected", body: "", glyph: "\u{F05AA}" });
+        }
     }
     Timer { id: noteT; interval: 3000; onTriggered: root.note = null }
     readonly property bool crit: note?.urgency === NotificationUrgency.Critical
@@ -121,140 +112,7 @@ Scope {
         }
     }
 
-    // остров: стопка плашек сверху по центру, новые сверху. Белая обводка (критическое — красная), иконка в круге, красная точка.
-    // Каждая — как dynamic island: падает пилюлей, расплывается в плашку, текст проявляется последним; уходит обратно, и её место
-    // схлопывается — нижние подтягиваются. Своя жизнь у каждой 4 с, наведение на стопку держит все.
-    // Окно постоянного размера (под most плашек), мышь ловит только сама стопка
-    PanelWindow {
-        visible: stack.count > 0
-        anchors.top: true
-        implicitWidth: Math.ceil(600 * Theme.s)
-        implicitHeight: Math.ceil((24 + root.most * 132) * Theme.s)
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-        mask: Region { item: col }
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "glyph-island"
-
-        Stage {
-            Column {
-                id: col
-                y: 24
-                width: 600
-                HoverHandler { id: hov }
-
-                Repeater {
-                    model: stack
-
-                    Item {
-                        id: c
-                        required property int index
-                        required property string key
-                        required property string app
-                        required property string summary
-                        required property string body
-                        required property string icon
-                        required property string glyph
-                        required property bool crit
-                        required property bool leaving
-
-                        // p 0…1 линейно, у каждой фазы своё ease-out-quart (как glide)
-                        property real p: 0
-                        Component.onCompleted: p = Qt.binding(() => leaving ? 0 : 1)
-                        Behavior on p { NumberAnimation { duration: c.leaving ? 450 : 700 } }
-                        onPChanged: if (leaving && p <= 0) Qt.callLater(root.forget, key)
-                        function ph(a, b) { const x = Math.max(0, Math.min(1, (p - a) / (b - a))); return 1 - Math.pow(1 - x, 4); }
-                        readonly property real drop: ph(0, 0.3)   // пилюля падает
-                        readonly property real grow: ph(0.25, 0.8) // и расплывается в плашку
-                        readonly property real full: Math.max(86, txt.height + 32)
-
-                        width: 600
-                        height: (40 + (full - 40) * grow + 12) * drop // место в стопке растёт и схлопывается вместе с плашкой
-                        Timer { running: !c.leaving && !hov.hovered; interval: 4000; onTriggered: root.dismiss(c.key) }
-
-                        Rectangle {
-                            width: 140 + (600 - 140) * c.grow
-                            height: 40 + (c.full - 40) * c.grow
-                            x: (600 - width) / 2
-                            y: -24 * (1 - c.drop)
-                            opacity: c.drop
-                            radius: Math.min(34, height / 2)
-                            clip: true
-                            color: Theme.s1
-                            border { width: 1; color: c.crit ? Theme.red : Theme.fg }
-
-                            // содержимое — в полный размер по центру: ширина текста не меняется, пока плашка растёт
-                            Item {
-                                anchors.centerIn: parent
-                                width: 600
-                                height: c.full
-                                opacity: c.ph(0.7, 1)
-
-                                Rectangle {
-                                    id: ic
-                                    x: 16
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 54
-                                    height: 54
-                                    radius: 27
-                                    color: Theme.s2
-                                    Icon { anchors.centerIn: parent; visible: !img.visible; text: c.glyph || "\u{F009A}"; font.pixelSize: 24 }
-                                    Image {
-                                        id: img
-                                        anchors.centerIn: parent
-                                        width: 28
-                                        height: 28
-                                        visible: status === Image.Ready
-                                        source: c.icon ? Quickshell.iconPath(c.icon, true) : ""
-                                        sourceSize: Qt.size(28, 28)
-                                        layer.enabled: true
-                                        layer.effect: Dm { step: 2 }
-                                    }
-                                }
-                                Column {
-                                    id: txt
-                                    anchors { left: ic.right; leftMargin: 16; right: dot.left; rightMargin: 16; verticalCenter: parent.verticalCenter }
-                                    Lb { width: parent.width; elide: Text.ElideRight; text: `${c.app} · now` }
-                                    Text {
-                                        width: parent.width
-                                        topPadding: 2
-                                        elide: Text.ElideRight
-                                        text: c.summary
-                                        font { family: Theme.ui; pixelSize: 17; weight: Font.DemiBold }
-                                        color: Theme.fg
-                                    }
-                                    Text {
-                                        width: parent.width
-                                        visible: !!c.body
-                                        elide: Text.ElideRight
-                                        maximumLineCount: 2
-                                        wrapMode: Text.Wrap
-                                        textFormat: Text.PlainText
-                                        text: c.body
-                                        font { family: Theme.ui; pixelSize: 14 }
-                                        color: Theme.grey
-                                    }
-                                }
-                                // красная точка — только у самой новой: красное на экране одно
-                                Rectangle { id: dot; visible: c.index === 0; anchors { right: parent.right; rightMargin: 22; verticalCenter: parent.verticalCenter } width: 12; height: 12; radius: 6; color: Theme.red }
-                            }
-
-                            // клик — действие по умолчанию; плашка уходит, в истории остаётся. Уведомление могли уже закрыть —
-                            // от объекта остаётся пустая обёртка без actions
-                            TapHandler {
-                                onTapped: {
-                                    root.refs[c.key]?.actions?.find(a => a.identifier === "default")?.invoke();
-                                    root.dismiss(c.key);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ---- справа ----
+    // ---- right ----
     Edge {
         id: side
         anchors.right: true
@@ -270,18 +128,22 @@ Scope {
             f: root.value
         }
         Tag {
-            vertical: true // у вертикальной полосы и капсула стоит: иконка над числом
+            vertical: true // for a vertical strip the capsule is vertical too: icon above the number
             anchors { right: parent.right; rightMargin: 26; verticalCenter: parent.verticalCenter }
             Icon { text: root.kind === "bri" ? "\u{F00E0}" : Sys.muted ? "\u{F075F}" : "\u{F057E}" }
             Num { text: Math.round(root.value * 100); font.pixelSize: 30 }
         }
     }
 
-    // ---- снизу: прогресс задачи, без неё — идущий фокус-таймер (одной полосой, без капсулы: висит десятки минут) ----
+    // ---- bottom: task progress; without one, a running focus timer (a single strip, no capsule: it stays for tens of minutes) ----
+    // The focus start and done events also add a card to the island.
     readonly property var task: Notes.task
     readonly property real progress: task ? Math.max(0, Math.min(100, task.hints.value ?? 0)) / 100 : Focus.f
     Connections {
         target: Focus
+        function onRunningChanged() {
+            if (Focus.running) root.push({ app: "focus", summary: "Focus started", body: `${Focus.minutes} min`, glyph: "\u{F13AB}" });
+        }
         function onDone() { root.push({ app: "focus", summary: "Focus done", body: `${Focus.minutes} min`, glyph: "\u{F13AB}" }); }
     }
     Edge {
@@ -306,7 +168,7 @@ Scope {
         }
     }
 
-    // полоса у края: сквозная для мыши, рисуется в пикселях макета
+    // edge strip: mouse-transparent, drawn in layout pixels
     component Edge: PanelWindow {
         property bool shown
         default property alias content: st.data
@@ -318,7 +180,7 @@ Scope {
         WlrLayershell.namespace: "glyph-edge"
         Stage { id: st }
     }
-    // капсула-значение рядом с полосой; vertical — содержимое столбиком
+    // value capsule next to the strip; vertical stacks the content
     component Tag: Rectangle {
         default property alias content: box.data
         property bool vertical
@@ -336,7 +198,7 @@ Scope {
             verticalItemAlignment: Grid.AlignVCenter
         }
     }
-    // свечение горящих сегментов — единственная «тень» во всём шелле
+    // glow of lit segments is the only "shadow" in the entire shell
     component Glow: MultiEffect {
         shadowEnabled: true
         shadowColor: Theme.glow

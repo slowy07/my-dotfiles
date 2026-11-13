@@ -3,7 +3,7 @@ import QtQuick.Effects
 import qs
 import qs.components
 
-// шкала у края экрана: горящие сегменты светятся, погасшие лежат отдельно, без эффекта — иначе свечение обводило бы и серые
+// edge scale: lit segments glow; unlit ones lie separately without the effect, otherwise the glow would outline grey ones too
 Item {
     id: root
 

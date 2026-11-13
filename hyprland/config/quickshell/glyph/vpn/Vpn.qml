@@ -6,16 +6,16 @@ import Quickshell.Wayland
 import qs
 import qs.components
 
-// vpn: Super+P. Всё из Clash Verge, как договор в demonshot: тумблеры, режим, узлы и пинг — пункты его же трея (verge в курсе),
-// профиль — из его profiles.yaml, трафик и соединения — с сокета ядра (mihomo).
-// Панель 1040 по центру. Слева кольцо из 60 точек — туннель: горит, пока включён System proxy или TUN, красная точка в центре — живой.
-// Под ним пилюли System/TUN, чипы режима, профиль. Справа скорость Doto, трафик матрицей, узлы с пингом сегментами; выбранный — белый
+// vpn: Super+P. Everything from Clash Verge, as agreed in demonshot: toggles, mode, nodes and ping are items of its own tray (verge is aware),
+// the profile comes from its profiles.yaml, traffic and connections from the core socket (mihomo).
+// Panel 1040 centred. On the left a ring of 60 dots is the tunnel: it glows while System proxy or TUN is on, and the red dot in the centre is live.
+// Below it are the System/TUN pills, mode chips and profile. On the right Doto speed, traffic as a matrix, nodes with ping as segments; the selected one is white
 PanelWindow {
     id: root
 
-    // ---- verge: трей ----
+    // ---- verge: tray ----
     readonly property var verge: Sys.verge
-    // ponytail: пункты трея ищем по английским подписям (language: en в verge); другой язык — поменять строки тут
+    // ponytail: tray items are found by their English labels (language: en in verge); for another language change the strings here
     function child(op, pre) { return op.children.values.find(e => e.text.startsWith(pre)) ?? null; }
     function checked(op, pre) { return child(op, pre)?.checkState === Qt.Checked; }
     QsMenuOpener { id: tray; menu: root.verge?.menu ?? null }
@@ -29,7 +29,7 @@ PanelWindow {
     readonly property int mode: modeNames.findIndex(m => checked(modes, m))
     readonly property string group: (proxies.children.values.find(e => e.hasChildren)?.text ?? "proxy").toLowerCase()
 
-    // узел из пункта трея «TCP PL 🇵🇱⚡️-NODE🐸   | 48ms»: код страны из флага, имя без транспорта и эмодзи, пинг
+    // node from a tray item "TCP PL 🇵🇱⚡️-NODE🐸   | 48ms": country code from the flag, name without transport and emoji, ping
     readonly property var transports: ["tcp", "xhttp", "ws", "grpc", "h2", "http", "httpupgrade", "splithttp", "quic", "kcp", "reality", "hy2", "tuic"]
     readonly property var builtin: ({ DIRECT: ["Direct", "no proxy"], REJECT: ["Reject", "blocked"] })
     function way(e) {
@@ -48,7 +48,7 @@ PanelWindow {
     }
     readonly property var ways: grp.children.values.filter(e => !e.isSeparator && e.buttonType !== QsMenuButtonType.None).map(e => way(e))
 
-    // нажать пункт трея; несколько — по очереди: verge после каждого пересобирает меню
+    // press a tray item; several are pressed in turn because verge rebuilds the menu after each one
     property var queue: []
     function press(label) {
         queue = queue.concat([label]);
@@ -72,15 +72,15 @@ PanelWindow {
     function ping() { child(grp, "Test Latency")?.triggered(); pinging = true; pingT.restart(); }
     Timer { id: pingT; interval: 2500; onTriggered: root.pinging = false }
 
-    // ---- туннель: System proxy или TUN. Выключил — гаснут оба, включил — вернулись те, что были ----
+    // ---- tunnel: System proxy or TUN. Turning it off turns both off; turning it on restores the ones that were on ----
     readonly property bool live: sys || tun
-    property var kept: ["System Proxy", "TUN Mode"] // что вернуть при включении
-    property int want: -1                           // пока verge не догнал: 1 — включаем, 0 — выключаем
+    property var kept: ["System Proxy", "TUN Mode"] // what to restore when turning on
+    property int want: -1                           // until verge catches up: 1 means turning on, 0 means turning off
     readonly property bool connected: want >= 0 ? want === 1 : live
     onLiveChanged: want = -1
-    Timer { id: wantT; interval: 5000; onTriggered: root.want = -1 } // verge промолчал — показываем как есть
+    Timer { id: wantT; interval: 5000; onTriggered: root.want = -1 } // verge stayed silent, show it as is
     function flip() {
-        if (!verge) return Quickshell.execDetached(["clash-verge"]); // спит — разбудить
+        if (!verge) return Quickshell.execDetached(["clash-verge"]); // asleep, wake it
         if (connected) {
             kept = [sys && "System Proxy", tun && "TUN Mode"].filter(Boolean);
             kept.forEach(l => press(l));
@@ -91,12 +91,12 @@ PanelWindow {
         }
         wantT.restart();
     }
-    // ponytail: «с какого времени» — с включения при живом шелле; туннель, поднятый до старта, считается со старта
+    // ponytail: "since when" counts from enabling while the shell is live; a tunnel raised before start counts from the start
     property date since: new Date()
     onConnectedChanged: if (connected) since = new Date()
 
-    // публичная сеть со страницей входа: туннель её не пропустит (dns-hijack, MATCH,PROXY) — выключаем и открываем портал;
-    // сеть пустила (Full) — включаем обратно. NM проверяет связь мимо туннеля (привязан к wlan0), так что Portal он видит честно
+    // public network with a login page: the tunnel will not let it through (dns-hijack, MATCH,PROXY), so we turn it off and open the portal;
+    // once the network lets us through (Full) we turn it back on. NM checks connectivity outside the tunnel (bound to wlan0), so it sees Portal honestly
     property bool portal: false
     Connections {
         target: Networking
@@ -107,7 +107,7 @@ PanelWindow {
                     root.flip();
                     Quickshell.execDetached(["notify-send", "-a", "vpn", "Portal", "туннель снят до входа в сеть"]);
                 }
-                gate.restart(); // браузер — когда verge уже снял system proxy
+                gate.restart(); // the browser comes when verge has already removed the system proxy
             } else if (Networking.connectivity === NetworkConnectivity.Full && root.portal) {
                 root.portal = false;
                 if (!root.connected) root.flip();
@@ -115,10 +115,10 @@ PanelWindow {
         }
     }
     Timer { id: gate; interval: 1500; onTriggered: Qt.openUrlExternally("http://neverssl.com") }
-    // после входа NM перепроверяет связь с растущим шагом до 5 минут — торопим сами
+    // after login NM rechecks connectivity with a growing interval up to 5 minutes, so we hurry it ourselves
     Timer { running: root.portal; interval: 5000; repeat: true; onTriggered: Networking.checkConnectivity() }
 
-    // ---- verge: профиль (имя, откуда, когда обновлён, сколько потрачено) ----
+    // ---- verge: profile (name, source, last update, amount spent) ----
     readonly property string home: (Quickshell.env("XDG_DATA_HOME") || Quickshell.env("HOME") + "/.local/share") + "/io.github.clash-verge-rev.clash-verge-rev"
     property var prof: ({})
     FileView {
@@ -128,7 +128,7 @@ PanelWindow {
         onFileChanged: reload()
         onLoaded: root.prof = root.parseProf(text())
     }
-    // ponytail: yaml читаем регэкспами — profiles.yaml пишет verge, формат у него плоский
+    // ponytail: yaml is parsed with regexes because profiles.yaml is written by verge and its format is flat
     function parseProf(t) {
         const cur = /^current: *(\S+)/m.exec(t)?.[1], b = t.split(/\n- /).find(s => s.startsWith(`uid: ${cur}`)) ?? "";
         const f = k => new RegExp(`^ +${k}: *(.*)$`, "m").exec(b)?.[1]?.trim() ?? "";
@@ -141,11 +141,11 @@ PanelWindow {
         return `${n.toFixed(i > 2 ? 2 : 0)} ${u[i]}`;
     }
 
-    // ---- verge: ядро. Сокет сервиса verge или его собственный, секрет — из конфига verge; $0 — путь API ----
+    // ---- verge: core. The socket of the verge service or its own, the secret from the verge config; $0 is the API path ----
     readonly property string core: `d='${home}'; s=/run/clash-verge-service/users/$(id -u)/verge-mihomo.sock; [ -S "$s" ] || s="$d/verge-mihomo.sock"; `
         + `exec curl -sfN --unix-socket "$s" -H "Authorization: Bearer $(sed -n 's/^secret: *//p' "$d/config.yaml")" "http://core$0"`
 
-    // скорость раз в секунду, последние 10 минут — копится всегда, чтобы график не начинался с нуля
+    // speed once per second, the last 10 minutes, always accumulated so the graph does not start from zero
     property var toll: []
     property real up: 0
     property real down: 0
@@ -163,7 +163,7 @@ PanelWindow {
                 } catch (e) {}
             }
         }
-        onExited: retry.start() // verge спит — постучимся позже
+        onExited: retry.start() // verge is asleep, retry later
     }
     Timer { id: retry; interval: 5000; onTriggered: traffic.running = true }
 
@@ -175,7 +175,7 @@ PanelWindow {
     }
     Timer { running: root.visible; interval: 2000; repeat: true; triggeredOnStart: true; onTriggered: conns.running = true }
 
-    // протокол узлов (vless · xudp) — только у ядра, в трее его нет
+    // node protocol (vless · xudp) is only in the core, not in the tray
     property var kinds: ({})
     Process {
         id: kindsP
@@ -191,8 +191,8 @@ PanelWindow {
         }
     }
 
-    // матрица трафика: 50 столбцов по 12 с, точек от оси: [вход вверх, выход вниз], 0…5 по общему максимуму.
-    // Панель закрыта — не считаем: копится каждую секунду, а матрицу никто не видит
+    // traffic matrix: 50 columns of 12 s each, dots from the axis: [in up, out down], 0…5 by the overall maximum.
+    // Panel closed means no computation: it accumulates every second while nobody sees the matrix
     readonly property var cols: {
         if (!root.visible) return [];
         const s = Array(Math.max(0, 600 - toll.length)).fill([0, 0]).concat(toll), c = [];
@@ -208,8 +208,8 @@ PanelWindow {
     }
     function speed(b) { const k = b / 1024; return k >= 1000 ? [(k / 1024).toFixed(1), "mb/s"] : [k.toFixed(1), "kb/s"]; }
 
-    // ---- открытие / закрытие: сам себе анимация (у слоёв glyph в hypr no_anim) ----
-    property int cur: 0 // курсор клавиатуры по узлам
+    // ---- open / close: it animates itself (glyph layers use no_anim in hypr) ----
+    property int cur: 0 // keyboard cursor over the nodes
     property bool shown: false
     property real t: shown ? 1 : 0
     Behavior on t { NumberAnimation { duration: Theme.t; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.glide } }
@@ -253,7 +253,7 @@ PanelWindow {
             color: Theme.s1
             border { width: 1; color: Theme.s2 }
             focus: true
-            MouseArea { anchors.fill: parent } // клик по панели не закрывает
+            MouseArea { anchors.fill: parent } // clicks on the panel do not close it
 
             Keys.onPressed: e => {
                 const n = root.ways.length;
@@ -269,14 +269,14 @@ PanelWindow {
                 e.accepted = true;
             }
 
-            // ---- слева: кольцо, пилюли, режим, профиль ----
+            // ---- left: ring, pills, mode, profile ----
             Column {
                 x: 36
                 y: 36
                 width: 340
                 spacing: 16
 
-                // кольцо: загорается волной на открытии и при включении; клик — вкл/выкл
+                // ring: lights up as a wave on open and on connect; click toggles it
                 Item {
                     width: 340
                     height: 340
@@ -315,7 +315,7 @@ PanelWindow {
                     Pill { on: root.tun; icon: "\u{F0A60}"; name: "TUN"; sub: "tunnel"; onClicked: root.press("TUN Mode") }
                 }
 
-                // режим: белая заливка перетекает к выбранному чипу
+                // mode: the white fill flows to the selected chip
                 Rectangle {
                     id: modeBox
                     width: 340
@@ -364,7 +364,7 @@ PanelWindow {
                 Lb { text: `${root.bytes(root.prof.spent ?? 0)} of ${root.prof.total ? root.bytes(root.prof.total) : "∞"} spent`; px: 11 }
             }
 
-            // ---- справа: скорость, трафик, узлы ----
+            // ---- right: speed, traffic, nodes ----
             Item {
                 x: 420
                 y: 36
@@ -389,7 +389,7 @@ PanelWindow {
                         Lb { id: tl; text: "traffic · in / out · 10 min" }
                         Lb { anchors.right: parent.right; text: `${root.links} connections`; color: Theme.fg }
                     }
-                    // матрица: вход растёт от середины вверх, выход — вниз; верхушка белая, под ней серые
+                    // matrix: in grows upward from the middle, out downward; the tip is white and grey below
                     Grid {
                         id: mx
                         width: parent.width
@@ -401,7 +401,7 @@ PanelWindow {
                             Rectangle {
                                 required property int index
                                 readonly property int r: Math.floor(index / 50)
-                                readonly property int lv: r < 5 ? 5 - r : r - 4 // от оси: 1 … 5
+                                readonly property int lv: r < 5 ? 5 - r : r - 4 // from the axis: 1 … 5
                                 readonly property int h: root.cols[index % 50]?.[r < 5 ? 0 : 1] ?? 0
                                 width: mx.d
                                 height: mx.d
@@ -425,13 +425,13 @@ PanelWindow {
                     }
                 }
 
-                // ponytail: не влезли — листаются, панель не растёт
+                // ponytail: overflow scrolls and the panel does not grow
                 ListView {
                     id: list
                     anchors { top: rcol.bottom; topMargin: 4; bottom: parent.bottom; left: parent.left; right: parent.right }
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    model: root.ways.length // по числу: делегаты живут, заливка успевает перетечь
+                    model: root.ways.length // by count so the delegates persist and the fill can flow
                     delegate: Rectangle {
                         id: row
                         required property int index
@@ -471,7 +471,7 @@ PanelWindow {
                                 opacity: row.on ? 0.6 : 1
                             }
                         }
-                        // пинг: 5 сегментов, меньше — хуже; встроенные (direct/reject) без пинга
+                        // ping: 5 segments, fewer is worse; built-ins (direct/reject) have no ping
                         Row {
                             id: ping
                             anchors { right: parent.right; rightMargin: 20; verticalCenter: parent.verticalCenter }
@@ -513,7 +513,7 @@ PanelWindow {
         }
     }
 
-    // пилюля: вкл — белая, текст чёрный (как в быстрых настройках)
+    // pill: on is white with black text (as in quick settings)
     component Pill: Rectangle {
         id: pill
         property bool on
@@ -550,7 +550,7 @@ PanelWindow {
         }
         TapHandler { onTapped: pill.clicked() }
     }
-    // скорость: метка и число Doto
+    // speed: label and Doto number
     component Stat: Column {
         property string k
         property string v

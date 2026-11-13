@@ -1,7 +1,7 @@
 import QtQuick
 import qs
 
-// глиф Nerd Font (Material Design). Рамка 1em, как line-height: 1 в концепте (строка NF 1.32em)
+// Nerd Font glyph (Material Design). 1em box, like line-height: 1 in the concept (NF line is 1.32em)
 Text {
     readonly property real lead: -0.16 * font.pixelSize
     font { family: Theme.nf; pixelSize: 19 }

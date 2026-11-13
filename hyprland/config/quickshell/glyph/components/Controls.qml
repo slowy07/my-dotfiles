@@ -2,7 +2,7 @@ import QtQuick
 import qs
 import qs.services
 
-// назад · play (красный круг — «живое») · вперёд
+// back, play (red circle means "live"), forward
 Row {
     id: root
 

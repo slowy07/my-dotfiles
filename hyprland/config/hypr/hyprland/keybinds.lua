@@ -1,11 +1,11 @@
 local vars = require("variables")
 local fn   = require("hyprland.functions")
 
--- глобалки шелла — shell:<имя>: их регистрирует тот шелл, что сейчас живой (demonshot, glyph), чего у него нет — молчит
--- Launcher: тап Super открывает на отпускании. Без interrupt-ов Super+1 тоже открыл бы лаунчер,
--- поэтому каждый Super+<key> не поглощая шлёт launcherInterrupt (bindin catchall сломан с 0.55)
+-- shell globals are shell:<name>: registered by the currently live shell (demonshot, glyph); anything it lacks stays silent
+-- Launcher: a Super tap opens on release. Without interrupts Super+1 would also open the launcher,
+-- so every Super+<key> sends launcherInterrupt without consuming it (bindin catchall is broken since 0.55)
 hl.bind("SUPER + SUPER_L", hl.dsp.global("shell:launcher"), { release = true })
--- после Super+<key> release-бинд выше не срабатывает и interrupt залипает — сбрасываем на нажатии Super
+-- after Super+<key> the release bind above does not fire and interrupt sticks: reset it on Super press
 hl.bind("SUPER_L", hl.dsp.global("shell:launcherArm"), { ignore_mods = true, non_consuming = true })
 for _, key in ipairs({
     -- secondary modifiers: cover every Super+Mod+key combo
@@ -29,14 +29,14 @@ hl.bind(vars.kbAltar, hl.dsp.global("shell:altar"))
 hl.bind("SUPER + I", hl.dsp.global("shell:settings"))
 hl.bind("SUPER + N", hl.dsp.global("shell:ward"))
 hl.bind("SUPER + P", hl.dsp.global("shell:pact"))
-hl.bind("SUPER + A", hl.dsp.global("shell:quick")) -- быстрые настройки glyph
-hl.bind("SUPER + SHIFT + W", hl.dsp.global("shell:wall")) -- обои glyph
+hl.bind("SUPER + A", hl.dsp.global("shell:quick")) -- glyph quick settings
+hl.bind("SUPER + SHIFT + W", hl.dsp.global("shell:wall")) -- glyph wallpapers
 hl.bind(vars.kbSession, hl.dsp.global("shell:power"))
 hl.bind(vars.kbPower, hl.dsp.global("shell:power"))
 hl.bind(vars.kbLock, hl.dsp.exec_cmd(vars.lockCmd))
-hl.bind(vars.kbRestoreLock, hl.dsp.exec_cmd(vars.lockCmd), { locked = true }) -- лок упал — поднять заново (сессия ещё заблокирована → нужен locked)
+hl.bind(vars.kbRestoreLock, hl.dsp.exec_cmd(vars.lockCmd), { locked = true }) -- lock crashed: raise it again (the session is still locked, so locked is required)
 
--- Brightness: ставит шелл (services/Backlight) — OSD двигается сразу, brightnessctl догоняет
+-- Brightness: set by the shell (services/Backlight); the OSD moves immediately, brightnessctl catches up
 hl.bind("XF86MonBrightnessUp", hl.dsp.global("shell:briUp"), { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.global("shell:briDown"), { locked = true, repeating = true })
 

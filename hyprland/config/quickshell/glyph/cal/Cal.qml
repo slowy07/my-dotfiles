@@ -4,17 +4,17 @@ import Quickshell.Wayland
 import qs
 import qs.components
 
-// календарь и фокус-таймер: клик по часам бара. Панель 440 справа от бара, по центру — напротив часов, выезжает слева.
-// Месяц сеткой 7×6 (сегодня — белый круг), стрелки и ←→ листают, клик по месяцу — обратно к сегодня. Ниже таймер:
-// кольцо точек заполняется по часовой, пресеты минут, старт/пауза (и пробел), сброс. Пока идёт — Glyph заливает нижнюю полосу.
-// Esc или клик мимо — закрыть
+// calendar and focus timer: click the clock notch. A 440 panel at the top center drops from the notch like a dynamic island.
+// Month as a 7×6 grid (today is a white circle); arrows and ←→ change months; click the month to return to today. Below, the timer:
+// the dot ring fills clockwise, minute presets, start/pause (and space), reset. While running, Glyph fills the bottom strip.
+// Esc or a click outside closes it
 PanelWindow {
     id: root
 
     property bool open: false
     function toggle() { open = !open; }
     function close() { open = false; }
-    property int shift: 0 // месяцев от текущего
+    property int shift: 0 // months from the current one
     onOpenChanged: if (open) shift = 0
 
     property real t: open ? 1 : 0
@@ -31,7 +31,7 @@ PanelWindow {
     SystemClock { id: clock; precision: SystemClock.Hours }
     readonly property var en: Qt.locale("en_US")
     readonly property var month: new Date(clock.date.getFullYear(), clock.date.getMonth() + shift, 1)
-    readonly property int lead: (month.getDay() + 6) % 7 // дней прошлого месяца до понедельника
+    readonly property int lead: (month.getDay() + 6) % 7 // days of the previous month before Monday
 
     Rectangle {
         anchors.fill: parent
@@ -43,11 +43,14 @@ PanelWindow {
     Stage {
         Rectangle {
             id: panel
-            x: 92 - 24 * (1 - root.t) // правый край пилюли бара (14 + 64) и зазор 14
-            anchors.verticalCenter: parent.verticalCenter
+            // dynamic island: grows out of the center bar clock and drops down, instead of sliding in from the left
+            x: Math.round((parent.width - width) / 2)
+            y: 56
             width: 440
             height: col.height + 52
             opacity: root.t
+            transformOrigin: Item.Top
+            scale: 0.18 + 0.82 * root.t
             radius: 36
             color: Theme.s1
             border { width: 1; color: Theme.s2 }
@@ -60,7 +63,7 @@ PanelWindow {
                 else return;
                 e.accepted = true;
             }
-            MouseArea { anchors.fill: parent } // клик по панели не закрывает
+            MouseArea { anchors.fill: parent } // clicking the panel does not close it
 
             Column {
                 id: col
@@ -137,7 +140,7 @@ PanelWindow {
                             Lb {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 topPadding: 10
-                                text: Focus.running ? "focus" : Focus.paused ? "paused" : "ready"
+                                text: Focus.running ? (Focus.isBreak ? "break" : "focus") : Focus.paused ? "paused" : "ready"
                                 color: Focus.running ? Theme.fg : Theme.grey
                                 px: 10
                             }
@@ -146,22 +149,59 @@ PanelWindow {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 16
-                        Lb { text: "focus · min" }
                         Row {
                             spacing: 8
-                            Repeater {
-                                model: [15, 25, 45, 60]
-                                Rectangle {
-                                    id: chip
-                                    required property int modelData
-                                    readonly property bool on: Focus.minutes === modelData
-                                    width: 44
-                                    height: 44
-                                    radius: 22
-                                    color: on ? Theme.fg : chipHov.hovered ? Theme.s3 : Theme.s2
-                                    Text { anchors.centerIn: parent; text: chip.modelData; font { family: Theme.mono; pixelSize: 13 } color: chip.on ? Theme.ink : Theme.fg }
-                                    HoverHandler { id: chipHov; cursorShape: Qt.PointingHandCursor }
-                                    TapHandler { onTapped: Focus.set(chip.modelData) }
+                            Lb { text: "focus · min"; px: 10 }
+                            TextInput {
+                                id: focusInput
+                                text: String(Focus.focusMinutes)
+                                font { family: Theme.mono; pixelSize: 13 }
+                                color: Theme.fg
+                                width: 56
+                                inputMethodHints: Qt.ImhDigitsOnly
+                                Keys.onPressed: e => {
+                                    if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                                        Focus.setFocus(parseInt(focusInput.text) || 25);
+                                        focusInput.text = String(Focus.focusMinutes);
+                                        e.accepted = true;
+                                    }
+                                }
+                            }
+                            Row {
+                                spacing: 8
+                                Repeater {
+                                    model: [15, 25, 45, 60]
+                                    Rectangle {
+                                        id: chip
+                                        required property int modelData
+                                        readonly property bool on: Focus.focusMinutes === modelData
+                                        width: 44
+                                        height: 44
+                                        radius: 22
+                                        color: on ? Theme.fg : chipHov.hovered ? Theme.s3 : Theme.s2
+                                        Text { anchors.centerIn: parent; text: chip.modelData; font { family: Theme.mono; pixelSize: 13 } color: chip.on ? Theme.ink : Theme.fg }
+                                        HoverHandler { id: chipHov; cursorShape: Qt.PointingHandCursor }
+                                        TapHandler { onTapped: Focus.setFocus(chip.modelData) }
+                                    }
+                                }
+                            }
+                        }
+                        Row {
+                            spacing: 8
+                            Lb { text: "break · min"; px: 10 }
+                            TextInput {
+                                id: breakInput
+                                text: String(Focus.breakMinutes)
+                                font { family: Theme.mono; pixelSize: 13 }
+                                color: Theme.fg
+                                width: 56
+                                inputMethodHints: Qt.ImhDigitsOnly
+                                Keys.onPressed: e => {
+                                    if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                                        Focus.setBreak(parseInt(breakInput.text) || 5);
+                                        breakInput.text = String(Focus.breakMinutes);
+                                        e.accepted = true;
+                                    }
                                 }
                             }
                         }

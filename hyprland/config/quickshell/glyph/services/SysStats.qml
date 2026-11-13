@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// система из /proc и sysfs раз в 2 с, пока открыт алтарь (detailed); perf — вкладка Performance: ещё процессы и частота
+// system from /proc and sysfs every 2 s while the altar is open (detailed); perf is the Performance tab: also processes and frequency
 Singleton {
     id: root
 
@@ -12,9 +12,9 @@ Singleton {
     property bool perf: false
 
     property real cpu: 0          // 0…1
-    property var cores: []        // 0…1 по ядрам
+    property var cores: []        // 0…1 per core
     property real cpuTemp: 0      // °C
-    property real cpuFreq: 0      // GHz, среднее
+    property real cpuFreq: 0      // GHz, average
     property string load: ""
     property real mem: 0          // 0…1
     property real memUsed: 0      // GiB
@@ -27,13 +27,13 @@ Singleton {
     property real vramTotal: 0
     property var disks: []        // [{ mount, used 0…1, size }]
     property string iface: ""
-    property real rx: 0           // байт/с
+    property real rx: 0           // bytes/s
     property real tx: 0
-    property var procs: []        // [[имя, %cpu], …]
-    property real uptime: 0       // с
+    property var procs: []        // [[name, %cpu], …]
+    property real uptime: 0       // s
 
     property var prev: ({})
-    property var prevNet: [[0, 0], 0] // [[rx, tx], мс]
+    property var prevNet: [[0, 0], 0] // [[rx, tx], ms]
 
     function read(f) { f.reload(); return f.text(); }
     function num(f) { return parseFloat(read(f)) || 0; }
@@ -45,13 +45,13 @@ Singleton {
     FileView { id: cpuinfo; path: "/proc/cpuinfo"; blockAllReads: true }
     FileView { id: netdev; path: "/proc/net/dev"; blockAllReads: true }
     FileView { id: route; path: "/proc/net/route"; blockAllReads: true }
-    // gpu и датчики не зашиты, как в caelestia: есть nvidia-smi — берём с него; иначе первая карта drm с gpu_busy_percent
-    // (amdgpu), её vram и её hwmon. Температура cpu — первый из известных датчиков. Ничего не нашлось — нули
+    // gpu and sensors are not hardcoded, as in caelestia: if nvidia-smi exists we use it; otherwise the first drm card with gpu_busy_percent
+    // (amdgpu), its vram and its hwmon. CPU temperature comes from the first known sensor. If nothing is found the values are zero
     property string gpuType: ""   // "nvidia" | "drm" | ""
     property string card: ""      // /sys/class/drm/cardN/device
-    property string gpuDev: ""    // pci-устройство карты в sysfs: power/runtime_status — спит ли
+    property string gpuDev: ""    // pci device of the card in sysfs: power/runtime_status tells whether it sleeps
     property string gpuHwmon: ""
-    property var hwmons: ({})     // hwmonN по имени датчика
+    property var hwmons: ({})     // hwmonN by sensor name
     function hwmon(names) { const n = names.find(n => root.hwmons[n]); return n ? root.hwmons[n] + "/temp1_input" : ""; }
 
     FileView { id: gpuBusy; path: root.card ? root.card + "/gpu_busy_percent" : ""; blockAllReads: true; printErrors: false }
@@ -117,9 +117,9 @@ for c in /sys/class/drm/card*/device; do [ -e "$c/gpu_busy_percent" ] && { echo 
         }
     }
 
-    // диски меняются медленно — раз на открытие
+    // disks change slowly, so refresh once per open
     onDetailedChanged: if (detailed) df.running = true
-    // старт: первый срез cpu, чтобы при первом открытии разница была не с нуля
+    // start: the first cpu sample so the first open does not compare against zero
     Component.onCompleted: sample()
 
     Timer {
@@ -131,7 +131,7 @@ for c in /sys/class/drm/card*/device; do [ -e "$c/gpu_busy_percent" ] && { echo 
     }
 
     function sample() {
-        // cpu: общая строка и по ядрам
+        // cpu: the overall line and per core
         const next = {}, cores = [];
         for (const l of root.read(stat).split("\n")) {
             if (!l.startsWith("cpu")) break;
@@ -161,8 +161,8 @@ for c in /sys/class/drm/card*/device; do [ -e "$c/gpu_busy_percent" ] && { echo 
 
         root.load = root.read(loadavg).split(" ").slice(0, 3).join(" ");
         root.cpuTemp = root.num(cpuTempF) / 1000;
-        // спящую дискретку гибридного ноутбука опрос будит, и с опросом раз в 2 с она уже не засыпает (nvidia-smi — точно).
-        // Спит — значит, простаивает: 0, карту не трогаем
+        // polling wakes the discrete GPU of a hybrid laptop, and with a 2 s poll it never sleeps again (nvidia-smi does this for sure).
+        // If it sleeps it is idle: report 0 and leave the card alone
         if (root.read(gpuPm).startsWith("suspend")) { root.gpu = 0; root.gpuTemp = 0; }
         else if (root.gpuType === "nvidia") nvidia.running = true;
         else {
@@ -172,7 +172,7 @@ for c in /sys/class/drm/card*/device; do [ -e "$c/gpu_busy_percent" ] && { echo 
             root.vramTotal = root.num(vramTotalF) / 1073741824;
         }
 
-        // сеть: интерфейс маршрута по умолчанию
+        // network: the interface of the default route
         const r = root.read(route).split("\n").find(l => l.split("\t")[1] === "00000000");
         root.iface = r ? r.split("\t")[0] : "";
         const line = root.read(netdev).split("\n").find(l => l.trim().startsWith(root.iface + ":"));
@@ -186,7 +186,7 @@ for c in /sys/class/drm/card*/device; do [ -e "$c/gpu_busy_percent" ] && { echo 
         if (root.perf) top();
     }
 
-    // частота и процессы — только Performance; открыли вкладку — сразу, не ждать тика
+    // frequency and processes are Performance only; opening the tab runs them at once instead of waiting for a tick
     onPerfChanged: if (perf) top()
     function top() {
         const mhz = root.read(cpuinfo).match(/cpu MHz\s*:\s*[\d.]+/g) ?? [];

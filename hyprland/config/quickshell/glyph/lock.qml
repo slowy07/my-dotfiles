@@ -6,18 +6,18 @@ import Quickshell.Services.Pam
 import Quickshell.Wayland
 import "lock"
 
-// блокировка — отдельный процесс, как в demonshot: qs -p …/glyph/lock.qml (его зовёт `rice lock`). Разблокировались — выходим.
-// Упал шелл — лок живёт; упал лок — Hyprland держит экран закрытым, SUPER+ALT+L поднимает его заново
+// lock is a separate process, as in demonshot: qs -p .../glyph/lock.qml (called by `rice lock`). When unlocked, we exit.
+// If the shell crashes, the lock keeps running; if the lock crashes, Hyprland keeps the screen closed, SUPER+ALT+L raises it again
 ShellRoot {
     id: shell
-    // hot-reload пересоздаёт WlSessionLock: старый умирает, процесс висит без экрана
+    // hot-reload recreates WlSessionLock: the old one dies, the process hangs with no screen
     settings.watchFiles: false
 
     QtObject {
         id: gate
         property string buffer: ""
         property bool fail: false
-        property bool leaving: false // пароль принят: поверхность доигрывает уход, потом unlockT снимает лок
+        property bool leaving: false // password accepted: the surface finishes the exit animation, then unlockT releases the lock
         readonly property bool busy: pam.active
         function submit() {
             if (!buffer || pam.active || leaving) return;
@@ -55,7 +55,7 @@ ShellRoot {
     WlSessionLock {
         id: lock
         locked: true
-        // ponytail: lockedChanged после locked = false не приходит (quickshell 0.3.2), а secure падает — выходим по нему
+        // ponytail: lockedChanged does not arrive after locked = false (quickshell 0.3.2), and secure drops, so we exit on it
         onSecureChanged: if (!secure) Qt.quit()
 
         LockSurface { auth: gate; layout: shell.layout }

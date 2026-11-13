@@ -10,7 +10,7 @@ vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagn
 })
 
 M.base46 = {
-  theme = "everblush",
+  theme = require("configs.scheme").current(),
   hl_override = {
     Comment = { italic = true },
     ["@comment"] = { italic = true },

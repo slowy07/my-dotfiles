@@ -1,0 +1,41 @@
+background = #141b1e
+foreground = #dadada
+cursor-color = #dadada
+cursor-text = #141b1e
+selection-background = #6cbfbf
+selection-foreground = #141b1e
+
+
+font-family = JetBrainsMono Nerd Font
+# font-family = ObelMono Nerd Font Mono
+# font-family = ZedMono Nerd Font
+# font-family = CallingCode
+# font-family = GungsuhChe Nerd Font
+# font-family = CommitMono Nerd Font
+font-size = 14
+window-decoration = none
+gtk-tabs-location = hidden
+window-padding-x = 40
+window-padding-y = 40
+adjust-cell-height = 1
+adjust-cell-width = -1
+custom-shader = shaders/cursor_warp.glsl
+custom-shader = shaders/cursor_tail.glsl
+custom-shader = shaders/cursor_sweep.glsl
+
+shell-integration = fish
+
+cursor-style = bar
+cursor-style-blink = true
+mouse-hide-while-typing = true
+window-inherit-working-directory = true
+
+keybind = alt+left=goto_split:left
+keybind = alt+right=goto_split:right
+keybind = alt+up=goto_split:up
+keybind = alt+down=goto_split:down
+
+scrollbar = never
+
+# live colorscheme (glyph: everblush | aphelion)
+config-file = ~/.config/demonshot/ghostty.conf

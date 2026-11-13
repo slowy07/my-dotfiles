@@ -2,8 +2,8 @@ import QtQuick
 import qs
 import qs.components
 
-// выбор одного из нескольких: пилюля, слева подпись, белый сегмент переезжает на выбранное. ←→ или клик.
-// cur -1 (значения нет среди opts) — сегмента нет
+// select one of several: pill, label on the left, white segment moves to the selection. Left/right or click.
+// cur -1 (value not among opts) means no segment
 Rectangle {
     id: root
 

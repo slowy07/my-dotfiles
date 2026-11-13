@@ -4,15 +4,16 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 
-// уведомления: новое — остров сверху и вспышка Glyph, история — карточками в быстрых настройках
+// notifications: the server owns the bus, every arrival feeds the Tide island,
+// and the tracked list feeds the Glyph bar and quick settings
 Singleton {
     id: root
 
     readonly property var list: server.trackedNotifications.values
-    property var times: ({}) // id → когда пришло: у Notification своего времени нет
-    signal arrived(var n)
+    property var times: ({}) // id to arrival time; a Notification has no time of its own
+    signal received(var n)
 
-    // прогресс долгих задач — hint value (notify-send -h int:value:64 …): нижняя полоса Glyph
+    // progress of long tasks via hint value (notify-send -h int:value:64 ...): the bottom Glyph strip
     readonly property var task: list.slice().reverse().find(n => n.hints?.value !== undefined) ?? null
 
     NotificationServer {
@@ -23,7 +24,7 @@ Singleton {
         onNotification: n => {
             n.tracked = true;
             root.times = Object.assign({}, root.times, { [n.id]: Date.now() });
-            if (!Theme.state.dnd || n.urgency === NotificationUrgency.Critical) root.arrived(n);
+            root.received(n);
         }
     }
 
@@ -33,6 +34,6 @@ Singleton {
         return m < 1 ? "now" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h`;
     }
 
-    // счёт — в состояние: лок пишет «3 notifications»
+    // count into state: the lock writes "3 notifications"
     onListChanged: if (Theme.state.unread !== list.length) Theme.state.unread = list.length
 }

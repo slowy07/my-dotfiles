@@ -6,26 +6,26 @@ import qs
 import qs.components
 import "../prefs"
 
-// обои: Super+Shift+W или настройки → look. Не сетка картинок — экран целиком и есть превью: выбранная собирается точками
-// волной от ленты внизу. Лента — круги-миниатюры точками, выбранная по центру в кольце (оно горит долей пути по коллекции),
-// под живой сейчас — красная точка. Первый круг — NOTHING: без картинки, только сетка и шар.
-// ←→ / колесо — листать, tab — вид (точки / серое фото / цвет), ↑↓ — шаг точек, shift ↑↓ — яркость, ↵ или клик по
-// выбранной — поставить, esc — как было. Картинки — из Theme.state.wallDir, копии под экран — в Theme.wallCache (один раз)
+// wallpaper: Super+Shift+W or settings -> look. Not an image grid: the whole screen is the preview, and the selection is built in dots
+// in a wave from the strip below. The strip holds thumbnail circles in dots; the selection is centered in a ring (lit by the fraction of the collection traversed),
+// with a red dot under the currently active one. The first circle is NOTHING: no image, only the grid and orb.
+// <- -> / wheel browse, tab changes view (dots / grey photo / color), up/down adjust dot pitch, shift up/down adjust brightness; Enter or a click on
+// the selection applies it, esc leaves it unchanged. Images come from Theme.state.wallDir; screen-sized copies go to Theme.wallCache (once)
 PanelWindow {
     id: root
 
     readonly property string dir: Theme.state.wallDir || Quickshell.env("HOME") + "/Pictures/Wallpapers"
     readonly property var looks: ["dots", "mono", "color"]
-    // копии — в физических пикселях экрана, с запасом под обрезку
+    // copies are in physical screen pixels, with headroom for cropping
     readonly property string res: {
         const s = Quickshell.screens[0];
         return s ? `${Math.round(s.width * s.devicePixelRatio)}x${Math.round(s.height * s.devicePixelRatio)}^` : "2880x1800^";
     }
 
-    property var files: [] // оригиналы, у которых уже есть копия, по имени
-    property var fresh: [] // что нашёл текущий проход
+    property var files: [] // originals that already have a copy, by name
+    property var fresh: [] // what the current pass found
     readonly property var list: [""].concat(files)
-    // выбранное — путём, номер — от него: пока кэш дописывается, новые встают в середину и лента не съезжает
+    // the selection is stored by path, the index derives from it: while the cache is being filled, new items inserted in the middle do not shift the strip
     property string pick: ""
     readonly property int sel: Math.max(0, list.indexOf(pick))
     property int look: 0
@@ -35,18 +35,18 @@ PanelWindow {
     function name(p) { return p ? p.slice(p.lastIndexOf("/") + 1).replace(/\.[^.]+$/, "") : "nothing"; }
     function go(d) { pick = list[Math.max(0, Math.min(list.length - 1, sel + d))]; }
 
-    // превью — когда перестали листать: каждая картинка — декод и 20 МБ в видеопамять, на быстрой прокрутке это рывки.
-    // Лента едет сразу
+    // preview only after browsing stops: each image is a decode and 20 MB of video memory; fast scrolling would stutter.
+    // The strip moves immediately
     property string view: ""
     onPickChanged: settle.restart()
     Timer { id: settle; interval: 160; onTriggered: root.view = root.pick }
 
-    // лента едет одной анимацией: pos догоняет sel, круги считают место от дробного расстояния до него
+    // the strip moves in one animation: pos catches up to sel, and circles compute their place from the fractional distance to it
     property real pos: sel
     Behavior on pos { NumberAnimation { duration: Theme.t; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.glide } }
-    // круг на расстоянии d: выбранный 190, соседи 128, дальше на 12 меньше, не меньше 64; между целыми — по прямой
+    // circle at distance d: selected 190, neighbors 128, then 12 less each, minimum 64; between integers, linear
     function size(d) { d = Math.abs(d); return d < 1 ? 190 - 62 * d : Math.max(64, 128 - (d - 1) * 12); }
-    // центры кругов на целых d, дальше 9 не нужно — там уже не видно
+    // circle centers at integer d; beyond 9 is unnecessary because nothing is visible there
     readonly property var at: {
         const a = [0];
         for (let k = 1; k <= 10; k++) a.push(a[k - 1] + (size(k - 1) + size(k)) / 2 + (k === 1 ? 44 : 22));
@@ -87,9 +87,9 @@ PanelWindow {
         close();
     }
 
-    // копии под экран. Свежие проверяет один bash без единого процесса на файл; нет или старше оригинала — magick, по три
-    // сразу (png 8k съедает сотни МБ). Готовая — строкой в stdout. Пишем во временный и переносим: оборванный magick
-    // не оставит битую копию новее оригинала
+    // screen-sized copies. A single bash checks freshness without a process per file; missing or older than the original goes to magick, three
+    // at a time (an 8k png consumes hundreds of MB). Each finished copy is a line on stdout. Write to a temporary file and move it: an interrupted magick
+    // will not leave a broken copy newer than the original
     Process {
         id: scan
         command: ["bash", "-c", `shopt -s nullglob nocaseglob; mkdir -p "$2"; todo=()
@@ -105,7 +105,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
                 if (!root.files.includes(f)) root.files = root.files.concat([f]).sort();
             }
         }
-        // удалённые из папки — вон; без изменений не трогаем: новый массив пересоздал бы всю ленту
+        // remove entries deleted from the folder; leave things untouched when nothing changed, since a new array would recreate the whole strip
         onExited: {
             const f = root.fresh.slice().sort();
             if (f.join("\n") !== root.files.join("\n")) root.files = f;
@@ -139,7 +139,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             e.accepted = true;
         }
 
-        // то же, что под обоями дома: сетка и шар — их видно у NOTHING и в волне к нему; картинка закрыла — не рисуем
+        // same as under the home wallpaper: grid and orb are visible at NOTHING and in the wave toward it; when an image covers them, do not draw
         Rectangle { anchors.fill: parent; color: Theme.bg }
         Image {
             visible: Theme.state.grid && !prev.item?.opaque
@@ -148,7 +148,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             source: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="1.5" fill="#${Theme.hex(Theme.s2)}"/></svg>`)
         }
         Orb { visible: Theme.state.orb && !prev.item?.opaque; x: stage.width - 720; y: stage.height - 580 }
-        // превью живёт, пока пикер виден: закрыли — две картинки под экран выгружены
+        // the preview lives while the picker is visible: closing it unloads two fullscreen images
         Loader {
             id: prev
             anchors.fill: parent
@@ -162,7 +162,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             }
         }
 
-        // колесо — листать; клик мимо — снять фокус с ручек
+        // wheel browses; a click outside removes focus from the dials
         MouseArea {
             anchors.fill: parent
             property real acc: 0
@@ -176,7 +176,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             }
         }
 
-        // поверх картинки метки должны читаться: сверху и снизу фон сходит на нет
+        // labels must remain readable over the image: the background fades out at the top and bottom
         Rectangle {
             width: parent.width
             height: 380
@@ -195,7 +195,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             }
         }
 
-        // номер Doto и имя
+        // Doto number and name
         Column {
             x: 150 - 30 * (1 - root.t)
             y: 110
@@ -209,7 +209,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             Lb { topPadding: 22; width: 700; elide: Text.ElideRight; text: root.name(root.pick); px: 14; color: Theme.fg }
         }
 
-        // вид и ручки
+        // view and dials
         Column {
             anchors { right: parent.right; rightMargin: 150 - 30 * (1 - root.t) }
             y: 110
@@ -223,8 +223,8 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
             }
         }
 
-        // лента. Выбранная всегда в центре — кольцо стоит, круги едут под ним. Круги одного размера 190 и сжаты scale:
-        // слой с точками (Art) отрисован один раз, а меняй width — перерисовывался бы на каждом кадре у всех пятнадцати
+        // strip. The selection is always centered: the ring stays put and circles move beneath it. Circles are all 190 and compressed via scale:
+        // the dot layer (Art) is rendered once; changing width would redraw it every frame for all fifteen
         Ring {
             x: stage.width / 2 - width / 2
             y: 850 - height / 2
@@ -262,7 +262,7 @@ magick "$1[0]" -resize "$3" -quality 90 "$2/.$b.jpg" 2>/dev/null && mv "$2/.$b.j
                     border { width: 1; color: Theme.s3 }
                     Lb { anchors.centerIn: parent; text: "nothing" }
                 }
-                // живые сейчас
+                // currently active
                 Rectangle {
                     visible: th.modelData === Theme.state.wall
                     anchors { horizontalCenter: parent.horizontalCenter; top: parent.bottom; topMargin: th.index === root.sel ? 36 : 22 }

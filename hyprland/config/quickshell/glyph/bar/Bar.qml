@@ -10,17 +10,17 @@ import qs
 import qs.components
 import qs.settings
 
-// бар: горизонтальный convex в духе minflair — сплошная полоса-позвоночник сверху, три наплыва с вогнутыми
-// шейками: слева знак, воркспейсы и заголовок, в центре часы, справа трей, режим и питание.
-// Цвета — everblush (s1/fg/grey/s3). Знак — кольцо из 16 точек, центр краснеет, пока запись или микрофон.
-// Что в трее и в каком порядке, есть ли заголовок — Theme.state (настройки, раздел BAR)
+// bar: horizontal convex in the style of minflair, a solid spine strip on top, two flares with concave
+// necks: mark, workspaces and title on the left, tray, mode and power on the right. The center is cut around
+// the clock notch (glyph/Glyph) and the wallpaper shows through the gap.
+// Colors: everblush (s1/fg/grey/s3). The mark is a ring of 16 dots; the center turns red while recording or the microphone is active.
+// Tray contents and order, and whether the title is shown, come from Theme.state (settings, BAR section)
 PanelWindow {
     id: root
 
     signal markClicked
     signal trayClicked
     signal powerClicked
-    signal clockClicked
 
     anchors { top: true; left: true; right: true }
     implicitHeight: Math.ceil(44 * Theme.s)
@@ -28,22 +28,20 @@ PanelWindow {
     WlrLayershell.namespace: "glyph-bar"
 
     readonly property int active: Hyprland.focusedWorkspace?.id ?? 0
-    // шесть точек, больше — если занят или открыт дальний
+    // six dots, more if a workspace is occupied or a distant one is open
     readonly property int count: Math.min(10, Math.max(6, active, ...Hyprland.workspaces.values.filter(w => w.toplevels.values.length).map(w => w.id)))
     readonly property var top: ToplevelManager.activeToplevel
     readonly property var bat: UPower.displayDevice
     readonly property var wifi: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
 
-    // hyprland 0.56 с lua: dispatch принимает lua-выражение
+    // hyprland 0.56 with lua: dispatch accepts a lua expression
     function go(ws) { Hyprland.dispatch(`hl.dsp.focus({ workspace = "${ws}" })`); }
-
-    SystemClock { id: clock; precision: SystemClock.Minutes }
 
     Stage {
         id: stage
 
-        // convex в духе minflair: полоса 8 сверху, наплывы высотой 44, шейки 18×16 с радиусом 16.
-        // Ширины наплывов — по содержимому, центр всегда посередине
+        // convex in the style of minflair: 8 px strip on top, flares 44 high, necks 18×16 with radius 16.
+        // Flare widths depend on content; the center is always centered
         readonly property int baseH: 44
         readonly property int spine: 8
         readonly property int flareW: 18
@@ -52,28 +50,25 @@ PanelWindow {
         readonly property int pad: 26
         readonly property real leftW: leftRow.width + pad * 2
         readonly property real rightW: rightRow.width + pad * 2
-        readonly property real centerW: clk.width + flareW * 2 + 36
-        readonly property real centerX: Math.round((width - centerW) / 2)
+        readonly property int gapW: 186
+        readonly property real gapL: Math.round((width - gapW) / 2)
+        readonly property real gapR: gapL + gapW
 
-        // путь: левый наплыв -> шейка -> часы -> шейка -> правый наплыв. Свободные углы скруглены,
-        // у краёв экрана прямые — бар примыкает к краю, как convex у minflair
+        // path: two pieces around the notch gap, the wallpaper shows through it. Free corners are rounded,
+        // edges at the screen boundary are straight: the bar meets the edge as in minflair convex
         function barPath() {
             const w = width, h = baseH, tb = spine, fw = flareW, fh = flareH, br = corner;
-            const lW = leftW, cX = centerX, cW = centerW, rX = w - rightW;
+            const lW = leftW, rX = w - rightW, a = gapL, b = gapR;
             let p = `M 0 0 `;
             p += `L 0 ${h} `;
             p += `L ${lW - fw - br} ${h} `;
             p += `C ${lW - fw - br * 0.45} ${h}, ${lW - fw} ${h - br * 0.45}, ${lW - fw} ${h - br} `;
             p += `L ${lW - fw} ${fh + tb} `;
             p += `C ${lW - fw} ${fh * 0.45 + tb}, ${lW - fw * 0.55} ${tb}, ${lW} ${tb} `;
-            p += `L ${cX} ${tb} `;
-            p += `C ${cX + fw * 0.55} ${tb}, ${cX + fw} ${fh * 0.45 + tb}, ${cX + fw} ${fh + tb} `;
-            p += `L ${cX + fw} ${h - br} `;
-            p += `C ${cX + fw} ${h - br * 0.45}, ${cX + fw + br * 0.45} ${h}, ${cX + fw + br} ${h} `;
-            p += `L ${cX + cW - fw - br} ${h} `;
-            p += `C ${cX + cW - fw - br * 0.45} ${h}, ${cX + cW - fw} ${h - br * 0.45}, ${cX + cW - fw} ${h - br} `;
-            p += `L ${cX + cW - fw} ${fh + tb} `;
-            p += `C ${cX + cW - fw} ${fh * 0.45 + tb}, ${cX + cW - fw * 0.55} ${tb}, ${cX + cW} ${tb} `;
+            p += `L ${a} ${tb} `;
+            p += `L ${a} 0 Z `;
+            p += `M ${b} 0 `;
+            p += `L ${b} ${tb} `;
             p += `L ${rX} ${tb} `;
             p += `C ${rX + fw * 0.55} ${tb}, ${rX + fw} ${fh * 0.45 + tb}, ${rX + fw} ${fh + tb} `;
             p += `L ${rX + fw} ${h - br} `;
@@ -97,14 +92,14 @@ PanelWindow {
 
         WheelHandler { onWheel: e => root.go(e.angleDelta.y > 0 ? "-1" : "+1") }
 
-        // ---- левый наплыв: знак, воркспейсы, заголовок ----
+        // ---- left flare: mark, workspaces, title ----
         Row {
             id: leftRow
             x: stage.pad
             anchors.verticalCenter: parent.verticalCenter
             spacing: 14
 
-            // знак: кольцо из точек, центр — красный, пока что-то пишет
+            // mark: ring of dots, center is red while anything is recording
             Item {
                 id: mark
                 anchors.verticalCenter: parent.verticalCenter
@@ -121,7 +116,7 @@ PanelWindow {
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.markClicked() }
             }
 
-            // воркспейсы: текущий вытягивается белой пилюлей, занятые 65%, пустые 22%
+            // workspaces: current expands into a white pill, occupied 65%, empty 22%
             Row {
                 id: ws
                 anchors.verticalCenter: parent.verticalCenter
@@ -150,7 +145,7 @@ PanelWindow {
                 }
             }
 
-            // заголовок окна: приложение · название, обрезается по 200
+            // window title: application · title, truncated at 200
             Lb {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.min(implicitWidth, 200)
@@ -162,34 +157,9 @@ PanelWindow {
             }
         }
 
-        // ---- центр: часы одной строкой (жирный Space Grotesk) и приглушённая дата.
-        // Клик — календарь и фокус-таймер (cal/Cal) ----
-        Row {
-            id: clk
-            x: stage.centerX + (stage.centerW - width) / 2
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 8
-            scale: clkHov.hovered ? 1.02 : 1
-            TapHandler { onTapped: root.clockClicked() }
-            HoverHandler { id: clkHov; cursorShape: Qt.PointingHandCursor }
-            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Theme.hh(clock.date) + ":" + Qt.formatTime(clock.date, "mm")
-                font { family: Theme.ui; pixelSize: 18; weight: Font.Bold; letterSpacing: -0.4 }
-                color: Theme.fg
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Qt.locale("en_US").toString(clock.date, "ddd, d MMM")
-                font { family: Theme.ui; pixelSize: 9; weight: Font.Medium }
-                color: Theme.fade(Theme.fg, 0.4)
-            }
-        }
-
-        // ---- правый наплыв: трей — Theme.state.bar по порядку (настройки, раздел BAR).
-        // Раскладка, сеть, bluetooth, звук (колесо — громкость), уведомления, батарея: клик открывает быстрые настройки.
-        // Режим питания и питание — свои клики ----
+        // ---- right flare: tray in Theme.state.bar order (settings, BAR section).
+        // Layout, network, bluetooth, sound (wheel adjusts volume), notifications, battery: click opens quick settings.
+        // Power mode and power have their own click handlers ----
         Row {
             id: rightRow
             x: stage.width - stage.rightW + stage.pad
@@ -247,7 +217,7 @@ PanelWindow {
             color: Notes.list.length ? Theme.fg : Theme.grey
         }
     }
-    // батарея: молния на зарядке, заряд растёт слева направо, заливка дышит, пока заряжается
+    // battery: bolt while charging, charge grows left to right, fill pulses while charging
     Component {
         id: batC
         Row {
@@ -256,8 +226,8 @@ PanelWindow {
             spacing: 6
             readonly property bool ac: !UPower.onBattery
             readonly property bool charging: root.bat.state === UPowerDeviceState.Charging
-            // дыхание шагом 20 кадров/с, как шар в home/Back: анимация гнала бы бар на каждом vsync (120 Гц) все часы
-            // зарядки. Косинус с периодом 2,2 с — те же два InOutSine по 1,1 с
+            // pulse at 20 frames/s, like the orb in home/Back: an animation would drive the bar on every vsync (120 Hz) for all
+            // charging hours. Cosine with a 2.2 s period, the same two InOutSine segments of 1.1 s
             property real phase: 0
             readonly property real pulse: charging ? 0.675 + 0.325 * Math.cos(phase * Math.PI / 1.1) : 1
             Timer { running: batc.charging; interval: 50; repeat: true; onTriggered: batc.phase = (batc.phase + 0.05) % 2.2; onRunningChanged: batc.phase = 0 }
@@ -282,8 +252,8 @@ PanelWindow {
             Lb { anchors.verticalCenter: parent.verticalCenter; text: Math.round(root.bat.percentage * 100); px: 10 }
         }
     }
-    // режим питания засечками (Rules.modes): ultra — одна, performance — все; клик — следующий,
-    // наведение (и на батарею) — карточка с выбором
+    // power mode as ticks (Rules.modes): ultra shows one, performance shows all; click selects the next,
+    // hovering (also over the battery) shows a card with choices
     Component {
         id: modeC
         Item {
@@ -319,14 +289,14 @@ PanelWindow {
         }
     }
 
-    // ---- батарея и режим питания: навёл на батарею или засечки — карточка под баром, по центру того,
-    // на что навели. Заряд Doto, статус, шкала; ниже режимы кругами с засечками — клик выбирает, под курсором —
-    // что он делает. Ушёл и с бара, и с карточки — гаснет ----
+    // ---- battery and power mode: hovering the battery or ticks shows a card below the bar, centered on the
+    // hovered item. Charge in Doto, status, scale; below, modes as circles with ticks: click selects, the item under the
+    // cursor shows what it does. Leaving both the bar and the card fades it out ----
     property bool batHot: false
     property bool tickHot: false
     readonly property bool powHot: batHot || tickHot || popHov.hovered
     readonly property bool batLow: UPower.onBattery && root.bat.percentage < 0.15
-    // карточка встаёт по центру того, на что навели; пока видна — не прыгает
+    // the card is centered on the hovered item; it does not jump while visible
     property real popX: 0
     function peek(it) { if (!pop.visible) popX = it.mapToItem(stage, it.width / 2, 0).x; }
     property bool powOpen: false
@@ -345,7 +315,7 @@ PanelWindow {
         property real t: root.powOpen ? 1 : 0
         Behavior on t { NumberAnimation { duration: Theme.t; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.glide } }
         visible: t > 0
-        // под баром, по центру того, на что навели; растёт вниз
+        // below the bar, centered on the hovered item; grows downward
         anchor.item: stage
         anchor.rect: Qt.rect(root.popX - (pop.implicitWidth / Theme.s) / 2, stage.height + 8, 1, 1)
         anchor.edges: Edges.Top | Edges.Left
@@ -401,7 +371,7 @@ PanelWindow {
                                     radius: 40
                                     color: mo.on ? Theme.fg : moHov.hovered ? Theme.s3 : Theme.s2
                                     Behavior on color { ColorAnimation { duration: Theme.t } }
-                                    // засечки: сколько горит — такая сила
+                                    // ticks: how many are lit indicates the level
                                     Row {
                                         anchors.centerIn: parent
                                         spacing: 4

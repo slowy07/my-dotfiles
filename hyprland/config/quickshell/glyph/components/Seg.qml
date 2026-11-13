@@ -1,7 +1,7 @@
 import QtQuick
 import qs
 
-// сегментная шкала — полоски Glyph: горит доля f. vertical — снизу вверх
+// segmented scale, Glyph bars: fraction f lights. vertical means bottom to top
 Grid {
     id: root
 

@@ -1,7 +1,7 @@
 import QtQuick
 import qs
 
-// кольцо из n точек-светодиодов, горит доля f по часовой от 12. Загораются волной по кругу, 8 мс на точку
+// ring of n LED dots, fraction f lights clockwise from 12. They light in a wave around the circle, 8 ms per dot
 Item {
     id: root
 

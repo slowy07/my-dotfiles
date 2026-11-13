@@ -1,9 +1,9 @@
 import QtQuick
 import qs
 
-// обои: картинка матрицей точек (look 0), серым фото в тон темы (1) или цветным (2) — см. shaders/wall.frag.
-// Две картинки: та, что на экране, и приходящая. Пришла — волна от origin, в конце меняются ролями, старая выгружается.
-// Пустой path — прозрачно: под обоями сетка и шар. opaque — картинка закрыла всё, то, что под ней, можно не рисовать
+// wallpaper: image as a dot matrix (look 0), grey photo toned to the theme (1) or color (2), see shaders/wall.frag.
+// Two images: the one on screen and the incoming one. When it arrives, a wave from origin runs; at the end they swap roles and the old one is unloaded.
+// Empty path is transparent: grid and orb show under the wallpaper. opaque means the image covers everything, so what is beneath can be skipped
 Item {
     id: root
 
@@ -12,10 +12,10 @@ Item {
     property real pitch: Theme.state.wallPitch
     property real bright: Theme.state.wallBright / 100
     property point origin: Qt.point(width / 2, height / 2)
-    property bool animate: true // false — смена сразу, без волны
+    property bool animate: true // false means change immediately, without a wave
     readonly property bool opaque: fx.hasA > 0 && !run.running
 
-    property bool flip: false // кто на экране: false — ia, true — ib
+    property bool flip: false // which one is on screen: false is ia, true is ib
     readonly property Image cur: flip ? ib : ia
     readonly property Image next: flip ? ia : ib
 
@@ -25,17 +25,17 @@ Item {
     }
     function url(p) { return p ? "file://" + p.split("/").map(encodeURIComponent).join("/") : ""; }
 
-    // ---- смена: shown — путь на экране, coming — в пути ----
+    // ---- change: shown is the path on screen, coming is in transit ----
     property string shown: ""
     property string coming: ""
     property bool pending: false
-    readonly property bool sized: width > 0 && height > 0 // до размера не грузим: sourceSize 0 — декодировать целиком
+    readonly property bool sized: width > 0 && height > 0 // do not load before size is known: sourceSize 0 decodes the whole image
 
     onSizedChanged: change()
     onPathChanged: change()
     function change() {
         if (!sized) return;
-        if (run.running) { // листают быстрее волны — текущую досрочно в конец
+        if (run.running) { // scrolling faster than the wave, move the current one to the end early
             run.stop();
             swap();
         }
@@ -51,7 +51,7 @@ Item {
     }
     function check() {
         if (!pending || next.status === Image.Loading) return;
-        pending = false; // Error — уйдёт в прозрачное, как пустой
+        pending = false; // Error goes to transparent, like empty
         if (animate) run.restart();
         else swap();
     }
@@ -59,20 +59,20 @@ Item {
         flip = !flip;
         shown = coming;
         fx.wave = 0;
-        next.source = ""; // теперь это старая
+        next.source = ""; // now this is the old one
     }
 
     NumberAnimation { id: run; target: fx; property: "wave"; from: 0; to: 1; duration: 1500; easing.type: Easing.InOutSine; onFinished: root.swap() }
 
-    // источники текстур — соседи эффекта, не дети: эффект без картинок прячем, а невидимому Image сцена не обновляет
-    // текстуру. Поэтому и opacity 0, а не visible: false. sourceSize — в логических пикселях: на DPR Qt умножает сам
+    // texture sources are neighbors of the effect, not children: hide the effect without images, but the scene does not update an invisible Image
+    // texture. Hence opacity 0 instead of visible: false. sourceSize is in logical pixels: Qt multiplies by DPR itself
     Image { id: ia; opacity: 0; asynchronous: true; cache: false; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(root.width, root.height); onStatusChanged: if (root.next === ia) root.check() }
     Image { id: ib; opacity: 0; asynchronous: true; cache: false; fillMode: Image.PreserveAspectCrop; sourceSize: ia.sourceSize; onStatusChanged: if (root.next === ib) root.check() }
 
     ShaderEffect {
         id: fx
         anchors.fill: parent
-        visible: hasA > 0 || hasB > 0 || run.running // нечего рисовать — нет и полноэкранного прохода
+        visible: hasA > 0 || hasB > 0 || run.running // nothing to draw, so no full-screen pass
 
         // ---- uniforms ----
         readonly property size size: Qt.size(width, height)
